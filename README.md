@@ -55,6 +55,38 @@ The Lumalou speaks Mattel's **MPID** protocol over a custom GATT service (`4cea0
 
 Full write-up: [`docs/protocol.md`](docs/protocol.md).
 
+## Related devices (Fisher-Price Smart Connect)
+
+The Smart Connect app controlled a whole family of Fisher-Price devices. It was removed from
+the app stores in **March 2025** and its cloud support ended in **August 2025**, so none of
+them can be controlled by the official app anymore — that's what this project is for.
+
+They come in two protocol generations. This library implements the **newer "magic device"
+generation** (the MPID handshake over the `tx`/`rx`/`session`/`factory` characteristics) that
+the Lumalou uses. Across that generation the transport — handshake and framing — is identical;
+only the per-device command set differs. The **legacy generation** uses a different
+characteristic layout and crypto and is not supported yet.
+
+Legend: ✅ confirmed on hardware · 🟡 same protocol, untested · ⚪ different (legacy) protocol.
+
+| Device | Product code | Protocol | This library |
+|---|---|---|---|
+| **Lumalou** (Better Bedtime Routine System) | `gld09` | magic device (MPID) | ✅ confirmed |
+| **Bunny** | `gmn58` | magic device (MPID) | 🟡 likely — shared handshake, different commands |
+| **Whisper** | `ghp38` | magic device (MPID) | 🟡 likely — shared handshake, different commands |
+| Swing · Cradle Swing · Revolve Swing · Glider | `cbv76` `dkd85` `flg83` `ffh99` `gdd39` | legacy | ⚪ not yet |
+| Mobile · Mobile Baby · Mobile Baby 2 | `cdm85` `cmk04` `dfp73` | legacy | ⚪ not yet |
+| Sleeper · Deluxe Sleeper · Bassinet | `cmp94` `dpv51` `dpv70` | legacy | ⚪ not yet |
+| Lamp Soother · Seahorse | `dyw47` `fhc95` | legacy | ⚪ not yet |
+
+**Why 🟡 is a strong bet:** the magic-device models share the same local ECDH handshake, and
+the app ships each one's manufacturing public key hardcoded (Lumalou `gld09`, Bunny `gmn58`,
+Whisper `ghp38`). Connecting should work the same way — only the command opcodes change.
+
+**Have one of these** — especially a Bunny or Whisper, or any legacy device? Please
+[open an issue](https://github.com/stramanu/lumalou/issues). A test or a Bluetooth (HCI snoop)
+capture is the fastest way to extend support.
+
 ## Development
 
 ```bash
