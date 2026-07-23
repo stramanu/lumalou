@@ -1,0 +1,28 @@
+name: Release JS
+
+# Cut a release by pushing a tag like: js-v0.1.0
+# Requires an NPM_TOKEN repository secret (npm automation token).
+on:
+  push:
+    tags: ["js-v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - working-directory: packages/js
+        run: |
+          npm install
+          npm run typecheck
+          npm test
+          npm run build
+          npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

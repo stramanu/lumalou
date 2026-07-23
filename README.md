@@ -1,10 +1,17 @@
 # lumalou
 
+[![CI](https://github.com/stramanu/lumalou/actions/workflows/ci.yml/badge.svg)](https://github.com/stramanu/lumalou/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/lumalou?label=pypi)](https://pypi.org/project/lumalou/)
+[![npm](https://img.shields.io/npm/v/lumalou?label=npm)](https://www.npmjs.com/package/lumalou)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Local BLE control for the Fisher-Price Lumalou** — a reverse-engineered, multi-language
 implementation of the *Lumalou Better Bedtime Routine System* (product code `gld09`)
 protocol, after the official *Fisher-Price Smart Connect* app was discontinued.
 
 No cloud, no backend: the encrypted handshake and every command run locally over Bluetooth LE.
+
+> 🌥️ **Live web app** (Chrome/Edge, or iOS via Bluefy): <https://lumalou.emanuelestrazzullo.dev>
 
 ## Why a monorepo
 
@@ -26,8 +33,9 @@ Add a new language later (Rust, Go, Swift…) and the same vectors verify it.
 | [`packages/python`](packages/python) | Python (async, `bleak`) | `pip install lumalou` |
 | [`packages/js`](packages/js) | TypeScript / JavaScript (isomorphic core) | `npm install lumalou` |
 
-Python ships a full client + CLI. The JS package ships the isomorphic protocol core
-(browser Web Bluetooth or Node); the browser transport is a thin consumer-side layer.
+Python ships a full client + CLI. The JS package ships the isomorphic protocol core plus an
+optional browser client (`import { LumalouBrowserClient } from "lumalou/browser"`) using Web
+Bluetooth. The [live web app](https://lumalou.emanuelestrazzullo.dev) is built on it.
 
 ## What it controls
 
