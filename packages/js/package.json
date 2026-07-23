@@ -31,6 +31,9 @@
   ],
   "license": "MIT",
   "author": "Emanuele Strazzullo",
+  "homepage": "https://github.com/stramanu/lumalou",
+  "repository": { "type": "git", "url": "git+https://github.com/stramanu/lumalou.git", "directory": "packages/js" },
+  "bugs": "https://github.com/stramanu/lumalou/issues",
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsup": "^8.3.5",

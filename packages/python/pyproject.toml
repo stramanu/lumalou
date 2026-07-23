@@ -25,8 +25,8 @@ dependencies = ["bleak>=0.22", "cryptography>=41"]
 dev = ["pytest>=8"]
 
 [project.urls]
-Homepage = "https://github.com/emanuelestrazzullo/lumalou"
-Issues = "https://github.com/emanuelestrazzullo/lumalou/issues"
+Homepage = "https://github.com/stramanu/lumalou"
+Issues = "https://github.com/stramanu/lumalou/issues"
 
 [project.scripts]
 lumalou = "lumalou.cli:main"
