@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  spec-up-to-date:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install cryptography
+      - name: Regenerate code and vectors from spec
+        run: |
+          python tools/codegen.py
+          python tools/gen_vectors.py
+      - name: Fail if generated files are out of date
+        run: git diff --exit-code
+
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python-version }}" }
+      - working-directory: packages/python
+        run: |
+          pip install -e ".[dev]"
+          pytest -q
+
+  js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - working-directory: packages/js
+        run: |
+          npm install
+          npm run typecheck
+          npm test
+          npm run build

@@ -1,0 +1,13 @@
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.venv/
+# js
+node_modules/
+packages/js/dist/
+# misc
+.DS_Store

@@ -1,0 +1,190 @@
+{
+  "crc8": [
+    {
+      "data": "313233343536373839",
+      "init": 0,
+      "expected": 244
+    },
+    {
+      "data": "fe0153",
+      "init": 255,
+      "expected": 192
+    },
+    {
+      "data": "",
+      "init": 255,
+      "expected": 255
+    },
+    {
+      "data": "00",
+      "init": 255,
+      "expected": 243
+    }
+  ],
+  "sessionKey": [
+    {
+      "privateScalar": "7507b6b825bc2b1478ca392bde774b4c1c354a46b9f236388f9bf4b3a583d1a3",
+      "jwk": {
+        "kty": "EC",
+        "crv": "P-256",
+        "d": "dQe2uCW8KxR4yjkr3ndLTBw1Ska58jY4j5v0s6WD0aM",
+        "x": "-2qNzaoSoQ7FZlZQXexEjPTTl6T8L8yAwhQ7UVDofB8",
+        "y": "F_Q7RZIKslL4efR-tIA0uu4tVDO6ACkq13eJQI7qg1M"
+      },
+      "devicePubCompressed": "02bdc752ada111313522fb57e16325c213383c11b378965e5e5511361889f13f5d",
+      "expected": "4bbfeca88a887fe563daf698f03c4a7055d79271fece4cd115c56556305eddda"
+    },
+    {
+      "privateScalar": "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+      "jwk": {
+        "kty": "EC",
+        "crv": "P-256",
+        "d": "ABEiM0RVZneImaq7zN3u_wARIjNEVWZ3iJmqu8zd7v8",
+        "x": "eYlT5-gTT988E59j0_vMwlKii2ylBZ5hg3SoEjEkDz8",
+        "y": "yDJnrscl4YtmF2w2hdElcgGmcDOBlYWiKiljUBWa5ws"
+      },
+      "devicePubCompressed": "02bdc752ada111313522fb57e16325c213383c11b378965e5e5511361889f13f5d",
+      "expected": "ed07898e596eae345091f08f3843d4ff9118711357f69da0f4d08ed252ec2e57"
+    }
+  ],
+  "encodeCommand": [
+    {
+      "appData": "3c05",
+      "expected": "0110fe023c053b"
+    },
+    {
+      "appData": "0301",
+      "expected": "0110fe02030100"
+    },
+    {
+      "appData": "3a09",
+      "expected": "0110fe023a0931"
+    },
+    {
+      "appData": "53",
+      "expected": "0110fe015352"
+    },
+    {
+      "appData": "3016455303",
+      "expected": "0110fe05301645530336"
+    }
+  ],
+  "txFrame": [
+    {
+      "plaintext": "01020304",
+      "seq": 1,
+      "key": "b95d24386f1ac5d4cd2239eafc87dbc4",
+      "nonce": "11223344",
+      "salt": "8fb32ecf",
+      "expected": "7e0000000100052545a4f80a48"
+    },
+    {
+      "plaintext": "0110fe015352",
+      "seq": 2,
+      "key": "b95d24386f1ac5d4cd2239eafc87dbc4",
+      "nonce": "11223344",
+      "salt": "8fb32ecf",
+      "expected": "7e0000000200079646c51181851436"
+    },
+    {
+      "plaintext": "011005",
+      "seq": 255,
+      "key": "b95d24386f1ac5d4cd2239eafc87dbc4",
+      "nonce": "11223344",
+      "salt": "8fb32ecf",
+      "expected": "7e000000ff000462bb698e0d"
+    }
+  ],
+  "rxDecrypt": [
+    {
+      "frame": "7e0000000700087b83dec3ef3493d011",
+      "key": "b95d24386f1ac5d4cd2239eafc87dbc4",
+      "nonce": "11223344",
+      "salt": "8fb32ecf",
+      "expectedPlaintext": "015002001e001c",
+      "expectedCrcOk": true
+    },
+    {
+      "frame": "7e000000050008adc33d6edf5c1edf8f",
+      "key": "b95d24386f1ac5d4cd2239eafc87dbc4",
+      "nonce": "11223344",
+      "salt": "8fb32ecf",
+      "expectedPlaintext": "0150fe0218001a",
+      "expectedCrcOk": true
+    }
+  ],
+  "globalState": [
+    {
+      "args": "00000550500400001201114500",
+      "expected": {
+        "operationMode": 0,
+        "activityState": 0,
+        "musicStatus": 0,
+        "currentSong": 0,
+        "currentVolume": 5,
+        "playlistDuration": 5,
+        "lightStatus": 0,
+        "lightBrightness": 5,
+        "lightColor": 0,
+        "napTimeStatus": 0,
+        "napDuration": 4,
+        "ready2RiseStatus": 0,
+        "ready2RiseAlarmStatus": 0,
+        "timePrescaler": 0,
+        "currentStage": 0,
+        "clockDisplay": 1,
+        "clockBrightness": 2,
+        "clockFormat": 0,
+        "routineMusicStatus": 1,
+        "taskRewardSfx": 1,
+        "routineRewardSfx": 1,
+        "lightDuration": 4,
+        "routineVolume": 5,
+        "routineModeStatus": 0,
+        "alarmExecuting": 0
+      }
+    },
+    {
+      "args": "020105505004000012011145000a",
+      "expected": {
+        "operationMode": 0,
+        "activityState": 2,
+        "musicStatus": 0,
+        "currentSong": 16,
+        "currentVolume": 5,
+        "playlistDuration": 5,
+        "lightStatus": 0,
+        "lightBrightness": 5,
+        "lightColor": 0,
+        "napTimeStatus": 0,
+        "napDuration": 4,
+        "ready2RiseStatus": 0,
+        "ready2RiseAlarmStatus": 0,
+        "timePrescaler": 0,
+        "currentStage": 0,
+        "clockDisplay": 1,
+        "clockBrightness": 2,
+        "clockFormat": 0,
+        "routineMusicStatus": 1,
+        "taskRewardSfx": 1,
+        "routineRewardSfx": 1,
+        "lightDuration": 4,
+        "routineVolume": 5,
+        "routineModeStatus": 0,
+        "alarmExecuting": 0
+      }
+    }
+  ],
+  "responseFrame": [
+    {
+      "plaintext": "0150fe0218051f",
+      "expectedOpcode": 24,
+      "expectedArgs": "05"
+    },
+    {
+      "plaintext": "0150fe02020000",
+      "expectedOpcode": 2,
+      "expectedArgs": "00"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lumalou"
+version = "0.1.0"
+description = "Local BLE control for the Fisher-Price Lumalou — reverse-engineered MPID protocol, pure Python"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Emanuele Strazzullo" }]
+keywords = ["fisher-price", "lumalou", "ble", "bluetooth", "bleak", "reverse-engineering", "gld09"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Topic :: Home Automation",
+  "Framework :: AsyncIO",
+]
+dependencies = ["bleak>=0.22", "cryptography>=41"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.urls]
+Homepage = "https://github.com/emanuelestrazzullo/lumalou"
+Issues = "https://github.com/emanuelestrazzullo/lumalou/issues"
+
+[project.scripts]
+lumalou = "lumalou.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["lumalou*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

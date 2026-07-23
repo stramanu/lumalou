@@ -1,0 +1,40 @@
+{
+  "name": "lumalou",
+  "version": "0.1.0",
+  "description": "Local BLE protocol core for the Fisher-Price Lumalou (reverse-engineered MPID). Isomorphic: browser (Web Bluetooth) and Node.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "keywords": [
+    "fisher-price",
+    "lumalou",
+    "ble",
+    "web-bluetooth",
+    "reverse-engineering",
+    "gld09"
+  ],
+  "license": "MIT",
+  "author": "Emanuele Strazzullo",
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
