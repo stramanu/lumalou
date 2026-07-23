@@ -1,7 +1,7 @@
 # lumalou
 
 [![CI](https://github.com/stramanu/lumalou/actions/workflows/ci.yml/badge.svg)](https://github.com/stramanu/lumalou/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/lumalou?label=pypi)](https://pypi.org/project/lumalou/)
+[![PyPI](https://img.shields.io/pypi/v/lumalou?label=pypi&cacheSeconds=3600)](https://pypi.org/project/lumalou/)
 [![npm](https://img.shields.io/npm/v/lumalou?label=npm)](https://www.npmjs.com/package/lumalou)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -11,7 +11,7 @@ protocol, after the official *Fisher-Price Smart Connect* app was discontinued.
 
 No cloud, no backend: the encrypted handshake and every command run locally over Bluetooth LE.
 
-> 🌥️ **Live web app** (Chrome/Edge, or iOS via Bluefy): <https://lumalou.emanuelestrazzullo.dev>
+> 🌥️ **Live web app** (Chrome or Edge on desktop or Android, or iOS via Bluefy): <https://lumalou.emanuelestrazzullo.dev>
 
 ## Why a monorepo
 
@@ -108,9 +108,9 @@ protocol and aren't supported yet — see [Related devices](#related-devices-fis
 **Is any of my data sent anywhere?**
 No. The handshake and every command run locally on your device. There is no server.
 
-**Does it work on iPhone?**
-Yes, through the **Bluefy** browser (Safari and Chrome on iOS don't support Web Bluetooth).
-On desktop, use Chrome or Edge.
+**Does it work on phones?**
+Yes. On **Android** use **Chrome** — Web Bluetooth works out of the box. On **iPhone/iPad** use the
+**Bluefy** browser (Safari and Chrome on iOS don't support Web Bluetooth). On desktop, use Chrome or Edge.
 
 **Is this affiliated with Mattel or Fisher-Price?**
 No. It's an independent reverse-engineering project for interoperability. "Fisher-Price" and
