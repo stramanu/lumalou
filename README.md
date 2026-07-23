@@ -35,7 +35,8 @@ Add a new language later (Rust, Go, Swift…) and the same vectors verify it.
 
 Python ships a full client + CLI. The JS package ships the isomorphic protocol core plus an
 optional browser client (`import { LumalouBrowserClient } from "lumalou/browser"`) using Web
-Bluetooth. The [live web app](https://lumalou.emanuelestrazzullo.dev) is built on it.
+Bluetooth. A companion [web app](https://lumalou.emanuelestrazzullo.dev) implements the same
+protocol as a live demo.
 
 ## What it controls
 
