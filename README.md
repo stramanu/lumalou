@@ -58,14 +58,17 @@ Full write-up: [`docs/protocol.md`](docs/protocol.md).
 ## Related devices (Fisher-Price Smart Connect)
 
 The Smart Connect app controlled a whole family of Fisher-Price devices. It was removed from
-the app stores in **March 2025** and its cloud support ended in **August 2025**, so none of
-them can be controlled by the official app anymore — that's what this project is for.
+**Google Play in March 2025** and the app's **backend services shut down in August 2025**, so
+none of them can be controlled by the official app anymore. Only the app's online services are
+gone — the devices themselves speak a **local** Bluetooth protocol, which is exactly why this
+project can still control them.
 
-They come in two protocol generations. This library implements the **newer "magic device"
-generation** (the MPID handshake over the `tx`/`rx`/`session`/`factory` characteristics) that
-the Lumalou uses. Across that generation the transport — handshake and framing — is identical;
-only the per-device command set differs. The **legacy generation** uses a different
-characteristic layout and crypto and is not supported yet.
+They come in two protocol generations, which are technically distinct (different GATT
+characteristics and crypto — the legacy line predates the magic-device line). This library
+implements the **newer "magic device" generation** (the MPID handshake over the
+`tx`/`rx`/`session`/`factory` characteristics) that the Lumalou uses. Across that generation the
+transport — handshake and framing — is identical; only the per-device command set differs. The
+**legacy generation** uses a different characteristic layout and crypto and is not supported yet.
 
 Legend: ✅ confirmed on hardware · 🟡 same protocol, untested · ⚪ different (legacy) protocol.
 
@@ -86,6 +89,32 @@ Whisper `ghp38`). Connecting should work the same way — only the command opcod
 **Have one of these** — especially a Bunny or Whisper, or any legacy device? Please
 [open an issue](https://github.com/stramanu/lumalou/issues). A test or a Bluetooth (HCI snoop)
 capture is the fastest way to extend support.
+
+## FAQ
+
+**Is the Fisher-Price Smart Connect app coming back?**
+There's no official word. It was removed from Google Play in March 2025 and its backend
+services shut down in August 2025. This project is an independent, community alternative.
+
+**Do I need the Smart Connect app to use this?**
+No. It talks to the device directly over Bluetooth — no app, no account, no cloud, nothing to
+sign up for.
+
+**Which devices work?**
+Confirmed on the **Lumalou** (`gld09`). The other magic-device models (**Bunny**, **Whisper**)
+almost certainly work at the transport level but are untested. Legacy devices use a different
+protocol and aren't supported yet — see [Related devices](#related-devices-fisher-price-smart-connect).
+
+**Is any of my data sent anywhere?**
+No. The handshake and every command run locally on your device. There is no server.
+
+**Does it work on iPhone?**
+Yes, through the **Bluefy** browser (Safari and Chrome on iOS don't support Web Bluetooth).
+On desktop, use Chrome or Edge.
+
+**Is this affiliated with Mattel or Fisher-Price?**
+No. It's an independent reverse-engineering project for interoperability. "Fisher-Price" and
+"Lumalou" are trademarks of their respective owners.
 
 ## Development
 
