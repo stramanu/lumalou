@@ -11,9 +11,18 @@ Both packages are published from CI on a version tag. Versions are independent.
    - Workflow: `release-python.yml` · Environment: `pypi`
 3. In GitHub → repo → *Settings → Environments* → create environment `pypi`.
 
-### npm (automation token)
-1. Create an npm **automation** token (npmjs.com → Access Tokens).
-2. GitHub → repo → *Settings → Secrets and variables → Actions* → add secret `NPM_TOKEN`.
+### npm (Trusted Publishing — no token)
+Do **not** create a bypass-2FA automation token. Use Trusted Publishing (OIDC), like PyPI:
+
+1. Claim the name with one manual publish (creates the package and makes you the owner):
+   ```bash
+   cd packages/js && npm install && npm run build
+   npm publish --access public       # asks for your normal 2FA in the browser
+   ```
+2. npmjs.com → the `lumalou` package → *Settings → Trusted Publisher* → **GitHub Actions**:
+   - Organization/user: `stramanu` · Repository: `lumalou`
+   - Workflow filename: `release-js.yml`
+3. From then on, releases publish from CI over OIDC — no token, provenance is automatic.
 
 ## Cut a release
 
