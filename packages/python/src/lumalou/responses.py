@@ -30,6 +30,27 @@ def parse_global_state(args: bytes) -> dict:
     }
 
 
+def _unbcd(b: int) -> int:
+    return (b >> 4) * 10 + (b & 0x0F)
+
+
+def parse_day_routine(args: bytes) -> dict:
+    """Inverse of the day-routine encoder. Confirmed on hardware: the device
+    echoes back exactly the bytes that were written."""
+    if len(args) != 14:
+        raise ValueError(f"a day routine is 14 bytes, got {len(args)}")
+    if args[0] == 0xFF and args[1] == 0xFF:
+        time = None
+    else:
+        time = (_unbcd(args[0]), _unbcd(args[1]))
+    steps: dict[int, list[int]] = {}
+    for byte in args[2:]:
+        if byte == 0x00:
+            continue                    # padding
+        steps.setdefault(byte >> 4, []).append(byte & 0x0F)
+    return {"time": time, "steps": [steps[k] for k in sorted(steps)]}
+
+
 def response_name(opcode: int) -> str:
     return RESPONSES.get(opcode, f"0x{opcode:02x}")
 

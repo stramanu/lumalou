@@ -101,6 +101,46 @@ def set_nap_alarm(alarm) -> bytes:
 
 
 # ---- routine ----
+DAYS = ("sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday")
+
+_MAX_TASK_BYTES = 12          # 14-byte payload minus the 2 time bytes
+
+
+def _encode_day_routine(time, steps) -> bytes:
+    """Body of a day-routine command: time + one byte per task.
+
+    Mirrors FPLumaModel.encodeDayRoutineRequestBytes. High nibble is the 1-based
+    step index, low nibble the task id, so several tasks can share one step.
+    Verified against hardware: 07:30 + [[1],[3],[6]] -> 0730112336 + zero padding.
+    """
+    if time is None:
+        out = bytearray([0xFF, 0xFF])
+    else:
+        hour, minute = time
+        out = bytearray([bcd(hour), bcd(minute)])
+    for index, step in enumerate(steps, start=1):
+        for task_id in step:
+            out.append(((index << 4) & 0xF0) | (int(task_id) & 0x0F))
+    if len(out) - 2 > _MAX_TASK_BYTES:
+        raise ValueError(f"a day routine holds at most {_MAX_TASK_BYTES} tasks, got {len(out) - 2}")
+    out.extend(bytes(14 - len(out)))
+    return bytes(out)
+
+
+def set_day_routine(day: str, time, steps) -> bytes:
+    """Program one day's routine.
+
+    day:   one of DAYS
+    time:  (hour, minute), or None to leave the start time unset
+    steps: list of steps; each step is a list of task ids (see Task enum ids 1-11)
+    """
+    return bytes([DAY_ROUTINE["SET"][day], *_encode_day_routine(time, steps)])
+
+
+def request_day_routine(day: str) -> bytes:
+    return bytes([DAY_ROUTINE["REQUEST"][day]])
+
+
 def set_routine_status(on: bool) -> bytes:
     return _u8(COMMANDS["SET_ROUTINE_MODE_STATUS"], 1 if on else 0)
 
