@@ -158,3 +158,10 @@ test("boundary values are still accepted (parity with Python)", () => {
   // and must still be accepted when no fields are given
   assert.equal(hex(setGlobalState()), "01ffffffff");
 });
+
+test("non-integer arguments are rejected", () => {
+  for (const bad of [9.5, -0.5, NaN, Infinity]) {
+    assert.throws(() => setBrightness(bad as number));
+  }
+  assert.doesNotThrow(() => setBrightness(9));
+});

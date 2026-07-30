@@ -14,11 +14,17 @@ def _check(name: str, value, lo: int, hi: int) -> int:
 
     Masking turns an invalid id into a different *valid* one: 16 & 0x0F is 0,
     which for an alarm means ACTIVE, so a bad id used to arm the alarm silently.
+    The same silent-conversion class also hides in truncation: int(9.5) is 9
+    and int(-0.5) is 0 (0 = Alarm.ACTIVE again), so non-integers are rejected
+    outright rather than coerced, mirroring Number.isInteger in the TS binding.
+    bool is excluded even though it is an int subclass in Python, because
+    Number.isInteger(true) is false in JS: accepting it here would reopen the
+    exact asymmetry this check exists to close.
     """
-    v = int(value)
-    if not lo <= v <= hi:
-        raise ValueError(f"got {v}: {name} must be {lo}-{hi}")
-    return v
+    ok = isinstance(value, int) and not isinstance(value, bool) and lo <= value <= hi
+    if not ok:
+        raise ValueError(f"got {value}: {name} must be {lo}-{hi}")
+    return value
 
 
 def bcd(n) -> int:

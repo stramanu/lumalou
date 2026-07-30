@@ -282,3 +282,13 @@ def test_set_global_state_no_modify_sentinel_still_accepted():
     """0x0F means "leave this field unchanged" and sits outside every field's own range."""
     out = C.set_global_state()
     assert out[1:].hex() == "ffffffff"
+
+
+@pytest.mark.parametrize("bad", [9.5, -0.5, "9", None, True])
+def test_non_integer_is_rejected(bad):
+    """int(9.5) truncates to 9 and int(-0.5) truncates to 0 (0 = Alarm.ACTIVE for
+    an alarm field): truncation is the same silent-conversion bug through a
+    different door, so non-integers must be rejected outright, not coerced.
+    bool is rejected too since Number.isInteger(true) is false in the TS binding."""
+    with pytest.raises(ValueError):
+        C.set_led_brightness(bad)
