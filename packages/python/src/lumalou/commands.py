@@ -180,6 +180,24 @@ def set_sleepy_times(times) -> bytes:
     return bytes([COMMANDS["SET_SLEEPY_TIMES"], *_encode_weekly_times(times)])
 
 
+def set_r2r_alarms(per_day, sfx) -> bytes:
+    """Ready-to-rise alarm per day plus the sound-effect id.
+
+    per_day: seven Alarm ids (Sunday first); Alarm.INACTIVE (9) disables a day.
+    """
+    if len(per_day) != 7:
+        raise ValueError(f"alarms need exactly 7 entries (Sunday first), got {len(per_day)}")
+    values = [int(a) & 0x0F for a in per_day] + [int(sfx) & 0x0F]
+    return bytes([COMMANDS["SET_R2R_ALARMS"], *reduce_low_nibbles(values)])
+
+
+def set_routine_music_status(music, task_rewards, routine_rewards) -> bytes:
+    """Routine soundtrack plus the two reward-sound toggles."""
+    return bytes([COMMANDS["SET_ROUTINE_MUSIC_STATUS"],
+                  int(music) & 0xFF,
+                  ((int(task_rewards) & 0x0F) << 4) | (int(routine_rewards) & 0x0F)])
+
+
 # ---- read-only queries ----
 _REQUESTS = {
     "global_state": "REQUEST_GLOBAL_STATE", "current_date": "REQUEST_CURRENT_DATE",

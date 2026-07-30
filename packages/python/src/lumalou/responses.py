@@ -83,3 +83,52 @@ def label(state: dict) -> dict:
     except ValueError:
         pass
     return out
+
+
+def parse_r2r_alarms(args: bytes) -> dict:
+    """Decode READY_TO_RISE_ALARM_TIMES: seven Alarm ids then the sfx id,
+    nibble-packed. Observed on hardware: 99999990 = every day INACTIVE, sfx 0."""
+    if len(args) != 4:
+        raise ValueError(f"alarm times are 4 bytes, got {len(args)}")
+    n = _nibbles(args)
+    return {"days": n[:7], "sfx": n[7]}
+
+
+def parse_routine_music_status(args: bytes) -> dict:
+    if len(args) != 2:
+        raise ValueError(f"routine music status is 2 bytes, got {len(args)}")
+    return {"music": args[0],
+            "task_rewards": args[1] >> 4,
+            "routine_rewards": args[1] & 0x0F}
+
+
+def parse_clock_settings(args: bytes) -> dict:
+    """Decode CLOCK_SETTINGS. Nibbles are [reserved, display, brightness, format]."""
+    if len(args) != 2:
+        raise ValueError(f"clock settings are 2 bytes, got {len(args)}")
+    n = _nibbles(args)
+    return {"display": n[1], "brightness": n[2], "format": n[3]}
+
+
+def parse_current_date(args: bytes) -> dict:
+    """Decode CURRENT_DATE: BCD hour, minute, second, then the weekday (0 = Sunday)."""
+    if len(args) != 4:
+        raise ValueError(f"current date is 4 bytes, got {len(args)}")
+    return {"hour": _unbcd(args[0]), "minute": _unbcd(args[1]),
+            "second": _unbcd(args[2]), "weekday": args[3]}
+
+
+def parse_routine_task_status(args: bytes) -> dict:
+    """Best-effort decode of ROUTINE_TASK_STATUS (7 bytes).
+
+    The internal layout is not yet confirmed: on hardware the response was
+    all-zero because no routine was running. The working hypothesis, matching
+    the app's RoutineTaskStatus(sequence, map) shape, is one byte of current
+    step followed by twelve nibbles of per-task state. The raw bytes are always
+    returned so callers can fall back to showing them.
+    """
+    out = {"raw": args.hex()}
+    if len(args) == 7:
+        out["current_step"] = args[0]
+        out["task_states"] = _nibbles(args[1:])
+    return out

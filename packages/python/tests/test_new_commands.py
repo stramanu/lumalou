@@ -137,3 +137,69 @@ def test_parse_weekly_times_all_zero_is_midnight():
 def test_parse_weekly_times_rejects_wrong_length():
     with pytest.raises(ValueError, match="14"):
         R.parse_weekly_times(bytes(12))
+
+
+# --- ready-to-rise alarms ---
+
+def test_set_r2r_alarms_nibble_packs_days_and_sfx():
+    out = C.set_r2r_alarms([9, 9, 9, 9, 9, 9, 9], 0)
+    assert out[0] == 0x4A
+    assert out[1:].hex() == "99999990"          # exactly what the device reported
+
+
+def test_set_r2r_alarms_rejects_wrong_day_count():
+    with pytest.raises(ValueError, match="7"):
+        C.set_r2r_alarms([0] * 8, 0)
+
+
+def test_parse_r2r_alarms_hardware_vector():
+    got = R.parse_r2r_alarms(bytes.fromhex("99999990"))
+    assert got == {"days": [9, 9, 9, 9, 9, 9, 9], "sfx": 0}
+
+
+def test_r2r_alarms_round_trips():
+    body = C.set_r2r_alarms([0, 1, 2, 3, 4, 5, 6], 7)[1:]
+    assert R.parse_r2r_alarms(body) == {"days": [0, 1, 2, 3, 4, 5, 6], "sfx": 7}
+
+
+# --- routine music status ---
+
+def test_set_routine_music_status_packs_rewards():
+    out = C.set_routine_music_status(1, 1, 1)
+    assert out[0] == 0x69
+    assert out[1:].hex() == "0111"               # observed on the device
+
+
+def test_parse_routine_music_status_hardware_vector():
+    assert R.parse_routine_music_status(bytes.fromhex("0111")) == {
+        "music": 1, "task_rewards": 1, "routine_rewards": 1}
+
+
+# --- clock settings / date / task status ---
+
+def test_parse_clock_settings_hardware_vector():
+    assert R.parse_clock_settings(bytes.fromhex("0120")) == {
+        "display": 1, "brightness": 2, "format": 0}
+
+
+def test_parse_clock_settings_round_trips_with_encoder():
+    body = C.set_clock_settings(True, 2, 0)[1:]
+    assert R.parse_clock_settings(body) == {"display": 1, "brightness": 2, "format": 0}
+
+
+def test_parse_current_date_hardware_vector():
+    assert R.parse_current_date(bytes.fromhex("05002400")) == {
+        "hour": 5, "minute": 0, "second": 24, "weekday": 0}
+
+
+def test_parse_routine_task_status_keeps_raw_bytes():
+    got = R.parse_routine_task_status(bytes(7))
+    assert got["current_step"] == 0
+    assert got["task_states"] == [0] * 12
+    assert got["raw"] == "00000000000000"
+
+
+def test_parse_routine_task_status_tolerates_unexpected_length():
+    got = R.parse_routine_task_status(bytes(3))
+    assert got["raw"] == "000000"
+    assert "current_step" not in got
