@@ -220,9 +220,13 @@ def main():
         {"music": 0, "taskRewards": 0, "routineRewards": 1, "expected": "0001"},
     ]
 
+    # Test that reserved nibble (high 4 bits of byte 0) is ignored.
+    # The device only emits 0x0X values, but this vector proves the parser
+    # does not fold the reserved bits into display or any other field.
     vectors["clockSettings"] = [
         {"args": "0120", "expected": {"display": 1, "brightness": 2, "format": 0}},
         {"args": "0011", "expected": {"display": 0, "brightness": 1, "format": 1}},
+        {"args": "f120", "expected": {"display": 1, "brightness": 2, "format": 0}},
     ]
 
     vectors["currentDate"] = [

@@ -346,6 +346,14 @@
         "brightness": 1,
         "format": 1
       }
+    },
+    {
+      "args": "f120",
+      "expected": {
+        "display": 1,
+        "brightness": 2,
+        "format": 0
+      }
     }
   ],
   "currentDate": [

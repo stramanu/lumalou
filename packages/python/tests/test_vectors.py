@@ -63,7 +63,10 @@ def test_day_routine_vector(v):
     time = None if v["time"] is None else tuple(v["time"])
     out = C.set_day_routine(v["day"], time, v["steps"])
     assert out[1:].hex() == v["expected"]
-    assert R.parse_day_routine(bytes.fromhex(v["expected"]))["steps"] == v["steps"]
+    parsed = R.parse_day_routine(bytes.fromhex(v["expected"]))
+    expected_time = None if v["time"] is None else tuple(v["time"])
+    assert parsed["time"] == expected_time
+    assert parsed["steps"] == v["steps"]
 
 
 @pytest.mark.parametrize("v", VECTORS["weeklyTimes"])
