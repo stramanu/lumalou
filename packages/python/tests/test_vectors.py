@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from lumalou import crypto, protocol as P, responses as R
+from lumalou import commands as C, crypto, protocol as P, responses as R
 
 VECTORS = json.loads((Path(__file__).resolve().parents[3] / "spec" / "vectors.json").read_text())
 
@@ -56,3 +56,39 @@ def test_response_frame(v):
     r = P.parse_response_frame(bytes.fromhex(v["plaintext"]))
     assert r["ok"] and r["opcode"] == v["expectedOpcode"]
     assert r["args"].hex() == v["expectedArgs"]
+
+
+@pytest.mark.parametrize("v", VECTORS["dayRoutine"])
+def test_day_routine_vector(v):
+    time = None if v["time"] is None else tuple(v["time"])
+    out = C.set_day_routine(v["day"], time, v["steps"])
+    assert out[1:].hex() == v["expected"]
+    assert R.parse_day_routine(bytes.fromhex(v["expected"]))["steps"] == v["steps"]
+
+
+@pytest.mark.parametrize("v", VECTORS["weeklyTimes"])
+def test_weekly_times_vector(v):
+    times = [None if t is None else tuple(t) for t in v["times"]]
+    assert C.set_r2r_times(times)[1:].hex() == v["expected"]
+    assert R.parse_weekly_times(bytes.fromhex(v["expected"])) == times
+
+
+@pytest.mark.parametrize("v", VECTORS["r2rAlarms"])
+def test_r2r_alarms_vector(v):
+    assert C.set_r2r_alarms(v["days"], v["sfx"])[1:].hex() == v["expected"]
+
+
+@pytest.mark.parametrize("v", VECTORS["routineMusicStatus"])
+def test_routine_music_vector(v):
+    out = C.set_routine_music_status(v["music"], v["taskRewards"], v["routineRewards"])
+    assert out[1:].hex() == v["expected"]
+
+
+@pytest.mark.parametrize("v", VECTORS["clockSettings"])
+def test_clock_settings_vector(v):
+    assert R.parse_clock_settings(bytes.fromhex(v["args"])) == v["expected"]
+
+
+@pytest.mark.parametrize("v", VECTORS["currentDate"])
+def test_current_date_vector(v):
+    assert R.parse_current_date(bytes.fromhex(v["args"])) == v["expected"]

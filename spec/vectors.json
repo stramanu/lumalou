@@ -186,5 +186,186 @@
       "expectedOpcode": 2,
       "expectedArgs": "00"
     }
+  ],
+  "dayRoutine": [
+    {
+      "day": "sunday",
+      "time": [
+        7,
+        30
+      ],
+      "steps": [
+        [
+          1
+        ],
+        [
+          3
+        ],
+        [
+          6
+        ]
+      ],
+      "expected": "0730112336000000000000000000"
+    },
+    {
+      "day": "monday",
+      "time": null,
+      "steps": [
+        [
+          1
+        ]
+      ],
+      "expected": "ffff110000000000000000000000"
+    },
+    {
+      "day": "sunday",
+      "time": [
+        7,
+        0
+      ],
+      "steps": [
+        [
+          1,
+          2
+        ],
+        [
+          3
+        ]
+      ],
+      "expected": "0700111223000000000000000000"
+    },
+    {
+      "day": "sunday",
+      "time": [
+        0,
+        0
+      ],
+      "steps": [],
+      "expected": "0000000000000000000000000000"
+    }
+  ],
+  "weeklyTimes": [
+    {
+      "times": [
+        [
+          7,
+          0
+        ],
+        [
+          7,
+          30
+        ],
+        null,
+        [
+          7,
+          30
+        ],
+        [
+          7,
+          30
+        ],
+        [
+          7,
+          30
+        ],
+        [
+          9,
+          0
+        ]
+      ],
+      "expected": "07000730ffff0730073007300900"
+    },
+    {
+      "times": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "expected": "ffffffffffffffffffffffffffff"
+    }
+  ],
+  "r2rAlarms": [
+    {
+      "days": [
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9
+      ],
+      "sfx": 0,
+      "expected": "99999990"
+    },
+    {
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "sfx": 7,
+      "expected": "01234567"
+    }
+  ],
+  "routineMusicStatus": [
+    {
+      "music": 1,
+      "taskRewards": 1,
+      "routineRewards": 1,
+      "expected": "0111"
+    },
+    {
+      "music": 0,
+      "taskRewards": 0,
+      "routineRewards": 1,
+      "expected": "0001"
+    }
+  ],
+  "clockSettings": [
+    {
+      "args": "0120",
+      "expected": {
+        "display": 1,
+        "brightness": 2,
+        "format": 0
+      }
+    },
+    {
+      "args": "0011",
+      "expected": {
+        "display": 0,
+        "brightness": 1,
+        "format": 1
+      }
+    }
+  ],
+  "currentDate": [
+    {
+      "args": "05002400",
+      "expected": {
+        "hour": 5,
+        "minute": 0,
+        "second": 24,
+        "weekday": 0
+      }
+    },
+    {
+      "args": "23590106",
+      "expected": {
+        "hour": 23,
+        "minute": 59,
+        "second": 1,
+        "weekday": 6
+      }
+    }
   ]
 }

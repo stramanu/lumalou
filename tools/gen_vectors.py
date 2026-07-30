@@ -122,13 +122,38 @@ def h(b):
     return b.hex()
 
 
+def bcd(n):
+    return ((n // 10) << 4) | (n % 10)
+
+
+def encode_day_routine(time, steps):
+    if time is None:
+        out = bytearray([0xFF, 0xFF])
+    else:
+        out = bytearray([bcd(time[0]), bcd(time[1])])
+    for index, step in enumerate(steps, start=1):
+        for task in step:
+            out.append(((index << 4) & 0xF0) | (task & 0x0F))
+    out.extend(bytes(14 - len(out)))
+    return bytes(out)
+
+
+def encode_weekly_times(times):
+    out = bytearray()
+    for entry in times:
+        out += b"\xff\xff" if entry is None else bytes([bcd(entry[0]), bcd(entry[1])])
+    return bytes(out)
+
+
 def main():
     KEY = "b95d24386f1ac5d4cd2239eafc87dbc4"
     NONCE = "11223344"
     SALT = "8fb32ecf"
 
     vectors = {"crc8": [], "sessionKey": [], "encodeCommand": [], "txFrame": [],
-               "rxDecrypt": [], "globalState": [], "responseFrame": []}
+               "rxDecrypt": [], "globalState": [], "responseFrame": [], "dayRoutine": [],
+               "weeklyTimes": [], "r2rAlarms": [], "routineMusicStatus": [],
+               "clockSettings": [], "currentDate": []}
 
     for data, init in [("313233343536373839", 0), ("fe0153", 0xFF), ("", 0xFF), ("00", 0xFF)]:
         vectors["crc8"].append({"data": data, "init": init, "expected": crc8(bytes.fromhex(data), init)})
@@ -164,6 +189,46 @@ def main():
         fe = compose_request(bytes([opcode]) + bytes.fromhex(arg))
         plain = bytes([0x01, 0x50]) + fe
         vectors["responseFrame"].append({"plaintext": h(plain), "expectedOpcode": opcode, "expectedArgs": arg})
+
+    # Day routines. The first case is the payload a real device echoed back
+    # unchanged on 2026-07-30, so it anchors the format to observed bytes.
+    vectors["dayRoutine"] = [
+        {"day": "sunday", "time": [7, 30], "steps": [[1], [3], [6]],
+         "expected": h(encode_day_routine((7, 30), [[1], [3], [6]]))},
+        {"day": "monday", "time": None, "steps": [[1]],
+         "expected": h(encode_day_routine(None, [[1]]))},
+        {"day": "sunday", "time": [7, 0], "steps": [[1, 2], [3]],
+         "expected": h(encode_day_routine((7, 0), [[1, 2], [3]]))},
+        {"day": "sunday", "time": [0, 0], "steps": [],
+         "expected": h(encode_day_routine((0, 0), []))},
+    ]
+
+    week = [[7, 0], [7, 30], None, [7, 30], [7, 30], [7, 30], [9, 0]]
+    vectors["weeklyTimes"] = [
+        {"times": week,
+         "expected": h(encode_weekly_times([None if t is None else tuple(t) for t in week]))},
+        {"times": [None] * 7, "expected": "ff" * 14},
+    ]
+
+    vectors["r2rAlarms"] = [
+        {"days": [9] * 7, "sfx": 0, "expected": "99999990"},
+        {"days": [0, 1, 2, 3, 4, 5, 6], "sfx": 7, "expected": "01234567"},
+    ]
+
+    vectors["routineMusicStatus"] = [
+        {"music": 1, "taskRewards": 1, "routineRewards": 1, "expected": "0111"},
+        {"music": 0, "taskRewards": 0, "routineRewards": 1, "expected": "0001"},
+    ]
+
+    vectors["clockSettings"] = [
+        {"args": "0120", "expected": {"display": 1, "brightness": 2, "format": 0}},
+        {"args": "0011", "expected": {"display": 0, "brightness": 1, "format": 1}},
+    ]
+
+    vectors["currentDate"] = [
+        {"args": "05002400", "expected": {"hour": 5, "minute": 0, "second": 24, "weekday": 0}},
+        {"args": "23590106", "expected": {"hour": 23, "minute": 59, "second": 1, "weekday": 6}},
+    ]
 
     OUT.write_text(json.dumps(vectors, indent=2) + "\n")
     total = sum(len(v) for v in vectors.values())
