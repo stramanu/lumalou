@@ -203,3 +203,33 @@ def test_parse_routine_task_status_tolerates_unexpected_length():
     got = R.parse_routine_task_status(bytes(3))
     assert got["raw"] == "000000"
     assert "current_step" not in got
+
+
+# --- request() coverage and dispatch ---
+
+@pytest.mark.parametrize("name", [
+    "routine_mode_status", "routine_task_status", "routine_music_status",
+    "r2r_status", "r2r_times", "sleepy_times", "r2r_alarm_status",
+    "r2r_alarms", "nap_current_status", "time_prescaler",
+])
+def test_request_supports_new_names(name):
+    assert len(C.request(name)) == 1
+
+
+def test_request_omits_unanswered_nap_alarm_opcodes():
+    """0x50 and 0x51 returned no data on hardware, so they are not exposed."""
+    assert "nap_alarm" not in C.REQUESTS
+    assert "nap_alarm_status" not in C.REQUESTS
+
+
+def test_parse_response_dispatches_day_routine():
+    got = R.parse_response(0x2B, bytes.fromhex("0730112336000000000000000000"))
+    assert got["steps"] == [[1], [3], [6]]
+
+
+def test_parse_response_dispatches_clock_settings():
+    assert R.parse_response(0x99, bytes.fromhex("0120"))["brightness"] == 2
+
+
+def test_parse_response_returns_raw_for_unknown_opcode():
+    assert R.parse_response(0xEE, b"\x01\x02") == b"\x01\x02"

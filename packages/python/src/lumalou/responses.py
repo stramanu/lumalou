@@ -132,3 +132,23 @@ def parse_routine_task_status(args: bytes) -> dict:
         out["current_step"] = args[0]
         out["task_states"] = _nibbles(args[1:])
     return out
+
+
+# opcode -> parser. Day-routine responses share one layout.
+_PARSERS = {
+    0x02: parse_global_state,
+    0x13: parse_current_date,
+    0x22: parse_weekly_times,
+    0x23: parse_weekly_times,
+    0x27: parse_r2r_alarms,
+    0x93: parse_routine_music_status,
+    0x94: parse_routine_task_status,
+    0x99: parse_clock_settings,
+    **{op: parse_day_routine for op in (0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x90, 0x91)},
+}
+
+
+def parse_response(opcode: int, args: bytes):
+    """Decode a response when its layout is known, else return the raw bytes."""
+    parser = _PARSERS.get(opcode)
+    return parser(args) if parser else args
