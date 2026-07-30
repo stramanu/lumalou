@@ -1,6 +1,6 @@
 {
   "name": "lumalou",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local BLE protocol core for the Fisher-Price Lumalou (reverse-engineered MPID). Isomorphic: browser (Web Bluetooth) and Node.",
   "type": "module",
   "main": "./dist/index.cjs",
