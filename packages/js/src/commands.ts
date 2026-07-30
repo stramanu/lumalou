@@ -4,6 +4,15 @@ import { COMMANDS, DAY_ROUTINE } from "./generated.js";
 const NO_MODIFY = 0x0f;
 const u8 = (...a: number[]) => new Uint8Array(a);
 
+/** Reject out-of-range arguments instead of masking them: 16 & 0x0f is 0, which
+ *  for an alarm means ACTIVE, so a bad id used to arm the alarm silently. */
+function check(name: string, value: number, lo: number, hi: number): number {
+  if (!Number.isInteger(value) || value < lo || value > hi) {
+    throw new Error(`got ${value}: ${name} must be ${lo}-${hi}`);
+  }
+  return value;
+}
+
 export const bcd = (n: number | null): number =>
   n == null ? 0xff : ((Math.floor(n / 10) << 4) | (n % 10)) & 0xff;
 
@@ -16,24 +25,27 @@ export function reduceLowNibbles(values: number[]): Uint8Array {
 }
 
 // light
-export const setLightColor = (c: number) => u8(COMMANDS.SET_LIGHT_COLOR, c);
-export const setBrightness = (l: number) => u8(COMMANDS.SET_LED_BRIGHTNESS, l & 0xff);
-export const setLightDuration = (d: number) => u8(COMMANDS.SET_SOOTHER_MODE_LIGHT_DURATION, d);
+export const setLightColor = (c: number) => u8(COMMANDS.SET_LIGHT_COLOR, check("color", c, 0, 9));
+export const setBrightness = (l: number) => u8(COMMANDS.SET_LED_BRIGHTNESS, check("brightness", l, 0, 9));
+export const setLightDuration = (d: number) =>
+  u8(COMMANDS.SET_SOOTHER_MODE_LIGHT_DURATION, check("light duration", d, 0, 5));
 export const turnOffBacklight = () => u8(COMMANDS.TURN_OFF_CLOUD_BACKLIGHT);
 
 // audio
-export const playAudio = (a: number) => u8(COMMANDS.PLAY_AUDIO, a);
+export const playAudio = (a: number) => u8(COMMANDS.PLAY_AUDIO, check("audio", a, 0, 7));
 export const turnOffAudio = () => u8(COMMANDS.TURN_OFF_AUDIO);
-export const setPlaylistDuration = (d: number) => u8(COMMANDS.SET_PLAYLIST_DURATION, d);
+export const setPlaylistDuration = (d: number) =>
+  u8(COMMANDS.SET_PLAYLIST_DURATION, check("playlist duration", d, 0, 6));
 export function setMusicPlaylist(songIds: number[]): Uint8Array {
-  const ids = songIds.filter((s) => s !== 0).slice(0, 12);
+  const checked = songIds.map((s) => check("song id", s, 0, 18));
+  const ids = checked.filter((s) => s !== 0).slice(0, 12);
   while (ids.length < 12) ids.push(0);
   return new Uint8Array([COMMANDS.SET_MUSIC_PLAYLIST, ...ids]);
 }
 
 // volume
-export const setVolume = (l: number) => u8(COMMANDS.SET_VOLUME, l & 0xff);
-export const setRoutineVolume = (l: number) => u8(COMMANDS.SET_ROUTINE_MODE_VOLUME, l & 0xff);
+export const setVolume = (l: number) => u8(COMMANDS.SET_VOLUME, check("volume", l, 0, 9));
+export const setRoutineVolume = (l: number) => u8(COMMANDS.SET_ROUTINE_MODE_VOLUME, check("routine volume", l, 0, 9));
 
 // system
 export const setGlobalOn = (on: boolean) => u8(COMMANDS.SET_GLOBAL_ON, on ? 1 : 0);
@@ -41,23 +53,33 @@ export function setGlobalState(o: {
   lightsOn?: number; brightness?: number; musicOn?: number; volume?: number;
   r2r?: number; r2rAlarm?: number; napAlarm?: number; routine?: number;
 } = {}): Uint8Array {
-  const f = (x?: number) => (x == null ? NO_MODIFY : x & 0x0f);
-  return new Uint8Array([COMMANDS.SET_GLOBAL_STATE, ...reduceLowNibbles(
-    [f(o.lightsOn), f(o.brightness), f(o.musicOn), f(o.volume), f(o.r2r), f(o.r2rAlarm), f(o.napAlarm), f(o.routine)])]);
+  const f = (name: string, x: number | undefined, lo: number, hi: number) =>
+    x == null ? NO_MODIFY : check(name, x, lo, hi);
+  return new Uint8Array([COMMANDS.SET_GLOBAL_STATE, ...reduceLowNibbles([
+    f("lightsOn", o.lightsOn, 0, 1),
+    f("brightness", o.brightness, 0, 9),
+    f("musicOn", o.musicOn, 0, 1),
+    f("volume", o.volume, 0, 9),
+    f("r2r", o.r2r, 0, 1),
+    f("r2rAlarm", o.r2rAlarm, 0, 10),
+    f("napAlarm", o.napAlarm, 0, 11),
+    f("routine", o.routine, 0, 1)])]);
 }
 export const setCurrentDate = (h: number, m: number, s: number, wd: number) =>
-  u8(COMMANDS.SET_CURRENT_DATE, bcd(h), bcd(m), bcd(s), bcd(wd));
+  u8(COMMANDS.SET_CURRENT_DATE, bcd(check("hour", h, 0, 23)), bcd(check("minute", m, 0, 59)),
+    bcd(check("second", s, 0, 59)), bcd(check("weekday", wd, 0, 6)));
 export function setClockSettings(displayOn: boolean, brightness: number, fmt: number): Uint8Array {
-  return new Uint8Array([COMMANDS.SET_CLOCK_SETTINGS, ...reduceLowNibbles([0, displayOn ? 1 : 0, brightness & 0x0f, fmt])]);
+  return new Uint8Array([COMMANDS.SET_CLOCK_SETTINGS, ...reduceLowNibbles(
+    [0, displayOn ? 1 : 0, check("brightness", brightness, 0, 9), check("clock format", fmt, 0, 1)])]);
 }
 
 // timers / routine
 export const setR2RStatus = (on: boolean) => u8(COMMANDS.SET_R2R_STATUS, on ? 1 : 0);
-export const startNap = (d: number) => u8(COMMANDS.START_NAP_TIME, d);
-export const setNapAlarm = (a: number) => u8(COMMANDS.SET_NAP_TIME_ALARM, a);
+export const startNap = (d: number) => u8(COMMANDS.START_NAP_TIME, check("nap duration", d, 0, 11));
+export const setNapAlarm = (a: number) => u8(COMMANDS.SET_NAP_TIME_ALARM, check("alarm", a, 0, 10));
 export const setRoutineStatus = (on: boolean) => u8(COMMANDS.SET_ROUTINE_MODE_STATUS, on ? 1 : 0);
 export const startRoutineMode = () => u8(COMMANDS.START_ROUTINE_MODE);
-export const routineControl = (c: number) => u8(COMMANDS.ROUTINE_CONTROL_COMMAND, c);
+export const routineControl = (c: number) => u8(COMMANDS.ROUTINE_CONTROL_COMMAND, check("routine control", c, 0, 4));
 
 // ---- day routine ----
 export const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
@@ -66,12 +88,14 @@ export type Day = (typeof DAYS)[number];
 const MAX_TASK_BYTES = 12;      // 14-byte payload minus the 2 time bytes
 
 function encodeDayRoutine(time: [number, number] | null, steps: number[][]): number[] {
-  const out: number[] = time === null ? [0xff, 0xff] : [bcd(time[0]), bcd(time[1])];
+  const out: number[] = time === null
+    ? [0xff, 0xff]
+    : [bcd(check("hour", time[0], 0, 23)), bcd(check("minute", time[1], 0, 59))];
   steps.forEach((step, i) => {
     if (step.length === 0) {
       throw new Error(`a day routine step must have at least one task, step ${i + 1} is empty`);
     }
-    for (const task of step) out.push((((i + 1) << 4) & 0xf0) | (task & 0x0f));
+    for (const task of step) out.push((((i + 1) << 4) & 0xf0) | check("task id", task, 0, 11));
   });
   if (out.length - 2 > MAX_TASK_BYTES) {
     throw new Error(`a day routine holds at most ${MAX_TASK_BYTES} tasks, got ${out.length - 2}`);
@@ -103,7 +127,7 @@ function encodeWeeklyTimes(times: ([number, number] | null)[]): number[] {
   const out: number[] = [];
   for (const t of times) {
     if (t === null) out.push(0xff, 0xff);
-    else out.push(bcd(t[0]), bcd(t[1]));
+    else out.push(bcd(check("hour", t[0], 0, 23)), bcd(check("minute", t[1], 0, 59)));
   }
   return out;
 }
@@ -121,13 +145,13 @@ export function setR2RAlarms(perDay: number[], sfx: number): Uint8Array {
   if (perDay.length !== 7) {
     throw new Error(`alarms need exactly 7 entries (Sunday first), got ${perDay.length}`);
   }
-  const values = [...perDay.map((a) => a & 0x0f), sfx & 0x0f];
+  const values = [...perDay.map((a) => check("alarm", a, 0, 10)), check("sfx", sfx, 0, 15)];
   return new Uint8Array([COMMANDS.SET_R2R_ALARMS, ...reduceLowNibbles(values)]);
 }
 
 export function setRoutineMusicStatus(music: number, taskRewards: number, routineRewards: number): Uint8Array {
-  return new Uint8Array([COMMANDS.SET_ROUTINE_MUSIC_STATUS, music & 0xff,
-    ((taskRewards & 0x0f) << 4) | (routineRewards & 0x0f)]);
+  return new Uint8Array([COMMANDS.SET_ROUTINE_MUSIC_STATUS, check("music", music, 0, 255),
+    (check("task rewards", taskRewards, 0, 15) << 4) | check("routine rewards", routineRewards, 0, 15)]);
 }
 
 // read-only queries. Keep in sync with REQUESTS in packages/python/src/lumalou/commands.py.

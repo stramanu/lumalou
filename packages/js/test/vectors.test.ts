@@ -10,7 +10,8 @@ import {
 } from "../src/crypto.js";
 import { parseGlobalState, parseResponsePayload, parseDayRoutine, parseWeeklyTimes,
   parseClockSettings, parseCurrentDate } from "../src/responses.js";
-import { setDayRoutine, requestDayRoutine, setR2RTimes, setR2RAlarms, setRoutineMusicStatus, request } from "../src/commands.js";
+import { setDayRoutine, requestDayRoutine, setR2RTimes, setR2RAlarms, setRoutineMusicStatus, request,
+  setLightColor, setBrightness, setGlobalState } from "../src/commands.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const V = JSON.parse(readFileSync(resolve(here, "../../../spec/vectors.json"), "utf8"));
@@ -140,4 +141,20 @@ test("day routine rejects the inputs Python rejects", () => {
 
 test("request rejects an unknown name", () => {
   assert.throws(() => request("bogus_name"), /bogus_name/);
+});
+
+test("out-of-range arguments are rejected", () => {
+  assert.throws(() => setR2RAlarms([16, 0, 0, 0, 0, 0, 0], 0), /alarm must be 0-10/);
+  assert.throws(() => setDayRoutine("sunday", [24, 0], [[1]]), /hour must be 0-23/);
+  assert.throws(() => setDayRoutine("sunday", [7, 0], [[12]]), /task id must be 0-11/);
+  assert.doesNotThrow(() => setR2RAlarms([9, 9, 9, 9, 9, 9, 9], 0));
+});
+
+test("boundary values are still accepted (parity with Python)", () => {
+  assert.doesNotThrow(() => setLightColor(9));
+  assert.doesNotThrow(() => setBrightness(0));
+  assert.doesNotThrow(() => setDayRoutine("sunday", [23, 59], [[11]]));
+  // the 0x0f "leave unchanged" sentinel sits outside every field's own range
+  // and must still be accepted when no fields are given
+  assert.equal(hex(setGlobalState()), "01ffffffff");
 });

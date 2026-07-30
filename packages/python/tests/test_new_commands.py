@@ -233,3 +233,52 @@ def test_parse_response_dispatches_clock_settings():
 
 def test_parse_response_returns_raw_for_unknown_opcode():
     assert R.parse_response(0xEE, b"\x01\x02") == b"\x01\x02"
+
+
+# --- input validation ---
+
+@pytest.mark.parametrize("call", [
+    lambda: C.set_light_color(10),
+    lambda: C.set_led_brightness(10),
+    lambda: C.set_volume(-1),
+    lambda: C.play_audio(8),
+    lambda: C.set_r2r_alarms([16] * 7, 0),
+    lambda: C.set_r2r_alarms([0] * 7, 16),
+    lambda: C.set_routine_volume(10),
+    lambda: C.routine_control(5),
+    lambda: C.set_day_routine("sunday", (24, 0), [[1]]),
+    lambda: C.set_day_routine("sunday", (7, 60), [[1]]),
+    lambda: C.set_day_routine("sunday", (7, 0), [[12]]),
+    lambda: C.set_r2r_times([(24, 0)] * 7),
+])
+def test_out_of_range_is_rejected(call):
+    with pytest.raises(ValueError):
+        call()
+
+
+def test_error_message_names_value_and_range():
+    with pytest.raises(ValueError, match="10.*0.*9"):
+        C.set_led_brightness(10)
+
+
+def test_alarm_16_no_longer_silently_arms():
+    """16 & 0x0F used to become 0 = Alarm.ACTIVE: an invalid id armed the alarm."""
+    with pytest.raises(ValueError):
+        C.set_r2r_alarms([16] * 7, 0)
+
+
+@pytest.mark.parametrize("call", [
+    lambda: C.set_light_color(9),
+    lambda: C.set_led_brightness(0),
+    lambda: C.set_r2r_alarms([9] * 7, 0),
+    lambda: C.set_day_routine("sunday", (23, 59), [[11]]),
+    lambda: C.set_r2r_times([(0, 0)] * 7),
+])
+def test_boundary_values_still_accepted(call):
+    assert isinstance(call(), bytes)
+
+
+def test_set_global_state_no_modify_sentinel_still_accepted():
+    """0x0F means "leave this field unchanged" and sits outside every field's own range."""
+    out = C.set_global_state()
+    assert out[1:].hex() == "ffffffff"
