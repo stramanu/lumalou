@@ -10,7 +10,7 @@ import {
 } from "../src/crypto.js";
 import { parseGlobalState, parseResponsePayload, parseDayRoutine, parseWeeklyTimes,
   parseClockSettings, parseCurrentDate } from "../src/responses.js";
-import { setDayRoutine, setR2RTimes, setR2RAlarms, setRoutineMusicStatus, request } from "../src/commands.js";
+import { setDayRoutine, requestDayRoutine, setR2RTimes, setR2RAlarms, setRoutineMusicStatus, request } from "../src/commands.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const V = JSON.parse(readFileSync(resolve(here, "../../../spec/vectors.json"), "utf8"));
@@ -122,4 +122,22 @@ test("every request name resolves to a one-byte payload", () => {
     assert.ok(out[0] > 0, `${n} resolved to opcode 0`);
   }
   assert.equal(names.length, 26);
+});
+
+test("day routine rejects the inputs Python rejects", () => {
+  assert.throws(() => setDayRoutine("sunday", [7, 0], [[1], [], [3]]), /empty/i);
+  assert.throws(
+    () => setDayRoutine("sunday", [7, 0], [[1], ...Array.from({ length: 14 }, () => []), [3]]),
+    /empty/i,
+  );
+  assert.throws(() => setDayRoutine("funday" as never, null, [[1]]), /funday/);
+  assert.throws(() => requestDayRoutine("funday" as never), /funday/);
+  assert.throws(() => setDayRoutine("sunday", [7, 0], Array.from({ length: 13 }, () => [1])), /12/);
+  assert.throws(() => setR2RTimes([[7, 0]] as never), /7/);
+  // the legitimate boundary still works
+  assert.doesNotThrow(() => setDayRoutine("sunday", [7, 0], Array.from({ length: 12 }, () => [1])));
+});
+
+test("request rejects an unknown name", () => {
+  assert.throws(() => request("bogus_name"), /bogus_name/);
 });

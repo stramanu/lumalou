@@ -68,6 +68,9 @@ const MAX_TASK_BYTES = 12;      // 14-byte payload minus the 2 time bytes
 function encodeDayRoutine(time: [number, number] | null, steps: number[][]): number[] {
   const out: number[] = time === null ? [0xff, 0xff] : [bcd(time[0]), bcd(time[1])];
   steps.forEach((step, i) => {
+    if (step.length === 0) {
+      throw new Error(`a day routine step must have at least one task, step ${i + 1} is empty`);
+    }
     for (const task of step) out.push((((i + 1) << 4) & 0xf0) | (task & 0x0f));
   });
   if (out.length - 2 > MAX_TASK_BYTES) {
@@ -77,12 +80,20 @@ function encodeDayRoutine(time: [number, number] | null, steps: number[][]): num
   return out;
 }
 
-/** Program one day's routine. High nibble is the 1-based step, low nibble the task id. */
-export function setDayRoutine(day: Day, time: [number, number] | null, steps: number[][]): Uint8Array {
-  return new Uint8Array([DAY_ROUTINE.SET[day], ...encodeDayRoutine(time, steps)]);
+function dayOpcode(table: Record<string, number>, day: Day): number {
+  const opcode = table[day];
+  if (opcode === undefined) {
+    throw new Error(`unknown day "${day}", expected one of ${DAYS.join(", ")}`);
+  }
+  return opcode;
 }
 
-export const requestDayRoutine = (day: Day) => new Uint8Array([DAY_ROUTINE.REQUEST[day]]);
+/** Program one day's routine. High nibble is the 1-based step, low nibble the task id. */
+export function setDayRoutine(day: Day, time: [number, number] | null, steps: number[][]): Uint8Array {
+  return new Uint8Array([dayOpcode(DAY_ROUTINE.SET, day), ...encodeDayRoutine(time, steps)]);
+}
+
+export const requestDayRoutine = (day: Day) => new Uint8Array([dayOpcode(DAY_ROUTINE.REQUEST, day)]);
 
 // ---- weekly times ----
 function encodeWeeklyTimes(times: ([number, number] | null)[]): number[] {
@@ -140,7 +151,13 @@ const REQUESTS: Record<string, keyof typeof COMMANDS> = {
   nap_current_status: "REQUEST_CURRENT_NAP_TIME_STATUS",
   time_prescaler: "REQUEST_TIME_PRESCALER",
 };
-export const request = (name: keyof typeof REQUESTS | string) => u8(COMMANDS[REQUESTS[name]]);
+export function request(name: keyof typeof REQUESTS | string): Uint8Array {
+  const key = REQUESTS[name];
+  if (key === undefined) {
+    throw new Error(`unknown request name "${name}", expected one of ${Object.keys(REQUESTS).join(", ")}`);
+  }
+  return u8(COMMANDS[key]);
+}
 
 // transport: enable the toy-IC to stream responses (raw SSI0 ENABLE_RX)
 export const ENABLE_RX = u8(0x01, 0x50, 0x01);
