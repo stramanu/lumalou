@@ -10,7 +10,7 @@ import {
 } from "../src/crypto.js";
 import { parseGlobalState, parseResponsePayload, parseDayRoutine, parseWeeklyTimes,
   parseClockSettings, parseCurrentDate } from "../src/responses.js";
-import { setDayRoutine, setR2RTimes, setR2RAlarms, setRoutineMusicStatus } from "../src/commands.js";
+import { setDayRoutine, setR2RTimes, setR2RAlarms, setRoutineMusicStatus, request } from "../src/commands.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const V = JSON.parse(readFileSync(resolve(here, "../../../spec/vectors.json"), "utf8"));
@@ -104,4 +104,22 @@ test("currentDate vectors", () => {
   for (const v of V.currentDate) {
     assert.deepEqual(parseCurrentDate(fromHex(v.args)), v.expected);
   }
+});
+
+test("every request name resolves to a one-byte payload", () => {
+  const names = [
+    // keep in sync with REQUESTS in packages/python/src/lumalou/commands.py
+    "global_state", "current_date", "toyic_fw_version", "led_brightness", "light_color",
+    "light_duration", "volume", "routine_volume", "song_playing", "music_playlist",
+    "playlist_duration", "operation_mode", "activity_state", "current_stage",
+    "clock_settings", "transmission_mode", "routine_mode_status", "routine_task_status",
+    "routine_music_status", "r2r_status", "r2r_times", "sleepy_times",
+    "r2r_alarm_status", "r2r_alarms", "nap_current_status", "time_prescaler",
+  ];
+  for (const n of names) {
+    const out = request(n);
+    assert.equal(out.length, 1, `${n} did not resolve`);
+    assert.ok(out[0] > 0, `${n} resolved to opcode 0`);
+  }
+  assert.equal(names.length, 26);
 });

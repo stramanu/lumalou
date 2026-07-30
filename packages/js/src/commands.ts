@@ -119,13 +119,16 @@ export function setRoutineMusicStatus(music: number, taskRewards: number, routin
     ((taskRewards & 0x0f) << 4) | (routineRewards & 0x0f)]);
 }
 
-// read-only queries
+// read-only queries. Keep in sync with REQUESTS in packages/python/src/lumalou/commands.py.
 const REQUESTS: Record<string, keyof typeof COMMANDS> = {
   global_state: "REQUEST_GLOBAL_STATE", current_date: "REQUEST_CURRENT_DATE",
   toyic_fw_version: "REQUEST_TOYIC_FW_VERSION", led_brightness: "REQUEST_LED_BRIGHTNESS",
   light_color: "REQUEST_LIGHT_COLOR", light_duration: "REQUEST_SOOTHER_MODE_LIGHT_DURATION",
-  volume: "REQUEST_VOLUME", song_playing: "REQUEST_SONG_PLAYING",
-  operation_mode: "REQUEST_OPERATION_MODE", current_stage: "REQUEST_CURRENT_STAGE",
+  volume: "REQUEST_VOLUME", routine_volume: "REQUEST_ROUTINE_MODE_VOLUME",
+  song_playing: "REQUEST_SONG_PLAYING", music_playlist: "REQUEST_MUSIC_PLAYLIST",
+  playlist_duration: "REQUEST_PLAYLIST_DURATION", operation_mode: "REQUEST_OPERATION_MODE",
+  activity_state: "REQUEST_ACTIVITY_STATE", current_stage: "REQUEST_CURRENT_STAGE",
+  clock_settings: "REQUEST_CLOCK_SETTINGS", transmission_mode: "REQUEST_TRANSMISSION_MODE",
   routine_mode_status: "REQUEST_ROUTINE_MODE_STATUS",
   routine_task_status: "REQUEST_ROUTINE_TASK_STATUS",
   routine_music_status: "REQUEST_ROUTINE_MUSIC_STATUS",
