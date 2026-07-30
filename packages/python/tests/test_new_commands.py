@@ -100,3 +100,40 @@ def test_day_routine_round_trips():
 def test_parse_day_routine_rejects_wrong_length():
     with pytest.raises(ValueError, match="14"):
         R.parse_day_routine(bytes(13))
+
+
+# --- weekly times ---
+
+WEEK = [(7, 0), (7, 30), None, (7, 30), (7, 30), (7, 30), (9, 0)]
+
+
+def test_set_r2r_times_encodes_seven_pairs():
+    out = C.set_r2r_times(WEEK)
+    assert out[0] == 0x46
+    assert out[1:].hex() == "0700" "0730" "ffff" "0730" "0730" "0730" "0900"
+    assert len(out) == 15
+
+
+def test_set_sleepy_times_uses_its_own_opcode():
+    out = C.set_sleepy_times(WEEK)
+    assert out[0] == 0x48
+    assert out[1:] == C.set_r2r_times(WEEK)[1:]      # same body format
+
+
+def test_set_r2r_times_rejects_wrong_day_count():
+    with pytest.raises(ValueError, match="7"):
+        C.set_r2r_times([(7, 0)] * 6)
+
+
+def test_parse_weekly_times_round_trips():
+    body = C.set_r2r_times(WEEK)[1:]
+    assert R.parse_weekly_times(body) == WEEK
+
+
+def test_parse_weekly_times_all_zero_is_midnight():
+    assert R.parse_weekly_times(bytes(14)) == [(0, 0)] * 7
+
+
+def test_parse_weekly_times_rejects_wrong_length():
+    with pytest.raises(ValueError, match="14"):
+        R.parse_weekly_times(bytes(12))

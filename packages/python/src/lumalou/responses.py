@@ -51,6 +51,18 @@ def parse_day_routine(args: bytes) -> dict:
     return {"time": time, "steps": [steps[k] for k in sorted(steps)]}
 
 
+def parse_weekly_times(args: bytes) -> list:
+    """Decode READY_TO_RISE_TIMES / SLEEPY_TIME_TIMES: seven BCD pairs,
+    Sunday first. FF FF means the day is disabled."""
+    if len(args) != 14:
+        raise ValueError(f"weekly times are 14 bytes, got {len(args)}")
+    out = []
+    for i in range(0, 14, 2):
+        hour, minute = args[i], args[i + 1]
+        out.append(None if hour == 0xFF and minute == 0xFF else (_unbcd(hour), _unbcd(minute)))
+    return out
+
+
 def response_name(opcode: int) -> str:
     return RESPONSES.get(opcode, f"0x{opcode:02x}")
 

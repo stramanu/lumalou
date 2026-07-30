@@ -155,6 +155,31 @@ def routine_control(ctrl) -> bytes:
     return _u8(COMMANDS["ROUTINE_CONTROL_COMMAND"], int(ctrl))
 
 
+# ---- weekly times ----
+def _encode_weekly_times(times) -> bytes:
+    """Seven (hour, minute) pairs as BCD, Sunday first. None disables a day (FF FF)."""
+    if len(times) != 7:
+        raise ValueError(f"weekly times need exactly 7 entries (Sunday first), got {len(times)}")
+    out = bytearray()
+    for entry in times:
+        if entry is None:
+            out += b"\xff\xff"
+        else:
+            hour, minute = entry
+            out += bytes([bcd(hour), bcd(minute)])
+    return bytes(out)
+
+
+def set_r2r_times(times) -> bytes:
+    """Weekly ready-to-rise (wake) times. Sends all seven days in one frame."""
+    return bytes([COMMANDS["SET_R2R_TIMES"], *_encode_weekly_times(times)])
+
+
+def set_sleepy_times(times) -> bytes:
+    """Weekly sleepy times. Same body format as set_r2r_times."""
+    return bytes([COMMANDS["SET_SLEEPY_TIMES"], *_encode_weekly_times(times)])
+
+
 # ---- read-only queries ----
 _REQUESTS = {
     "global_state": "REQUEST_GLOBAL_STATE", "current_date": "REQUEST_CURRENT_DATE",
