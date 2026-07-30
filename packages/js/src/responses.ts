@@ -1,5 +1,6 @@
 // Decode device responses. Values are raw integers (canonical, matches the spec).
 import { RESPONSES } from "./generated.js";
+import { hex } from "./crypto.js";
 
 const nibbles = (data: Uint8Array): number[] => {
   const out: number[] = [];
@@ -49,4 +50,79 @@ export function parseResponsePayload(plaintext: Uint8Array): { ok: boolean; opco
     return { ok: true, opcode: body[0], args: body.slice(1) };
   }
   return { ok: false };
+}
+
+const unbcd = (b: number) => (b >> 4) * 10 + (b & 0x0f);
+
+export function parseDayRoutine(args: Uint8Array) {
+  if (args.length !== 14) throw new Error(`a day routine is 14 bytes, got ${args.length}`);
+  const time = args[0] === 0xff && args[1] === 0xff ? null : [unbcd(args[0]), unbcd(args[1])];
+  const bySteps = new Map<number, number[]>();
+  for (const byte of args.slice(2)) {
+    if (byte === 0) continue;                 // padding
+    const step = byte >> 4;
+    if (!bySteps.has(step)) bySteps.set(step, []);
+    bySteps.get(step)!.push(byte & 0x0f);
+  }
+  const steps = [...bySteps.keys()].sort((a, b) => a - b).map((k) => bySteps.get(k)!);
+  return { time, steps };
+}
+
+export function parseWeeklyTimes(args: Uint8Array) {
+  if (args.length !== 14) throw new Error(`weekly times are 14 bytes, got ${args.length}`);
+  const out: ([number, number] | null)[] = [];
+  for (let i = 0; i < 14; i += 2) {
+    const [h, m] = [args[i], args[i + 1]];
+    out.push(h === 0xff && m === 0xff ? null : [unbcd(h), unbcd(m)]);
+  }
+  return out;
+}
+
+export function parseR2RAlarms(args: Uint8Array) {
+  if (args.length !== 4) throw new Error(`alarm times are 4 bytes, got ${args.length}`);
+  const n = nibbles(args);
+  return { days: n.slice(0, 7), sfx: n[7] };
+}
+
+export function parseRoutineMusicStatus(args: Uint8Array) {
+  if (args.length !== 2) throw new Error(`routine music status is 2 bytes, got ${args.length}`);
+  return { music: args[0], taskRewards: args[1] >> 4, routineRewards: args[1] & 0x0f };
+}
+
+export function parseClockSettings(args: Uint8Array) {
+  if (args.length !== 2) throw new Error(`clock settings are 2 bytes, got ${args.length}`);
+  const n = nibbles(args);
+  return { display: n[1], brightness: n[2], format: n[3] };
+}
+
+export function parseCurrentDate(args: Uint8Array) {
+  if (args.length !== 4) throw new Error(`current date is 4 bytes, got ${args.length}`);
+  return { hour: unbcd(args[0]), minute: unbcd(args[1]), second: unbcd(args[2]), weekday: args[3] };
+}
+
+/** Best-effort: the 7-byte layout is unconfirmed, so raw is always included. */
+export function parseRoutineTaskStatus(args: Uint8Array) {
+  const out: Record<string, unknown> = { raw: hex(args) };
+  if (args.length === 7) {
+    out.currentStep = args[0];
+    out.taskStates = nibbles(args.slice(1));
+  }
+  return out;
+}
+
+const PARSERS: Record<number, (a: Uint8Array) => unknown> = {
+  0x13: parseCurrentDate,
+  0x22: parseWeeklyTimes,
+  0x23: parseWeeklyTimes,
+  0x27: parseR2RAlarms,
+  0x93: parseRoutineMusicStatus,
+  0x94: parseRoutineTaskStatus,
+  0x99: parseClockSettings,
+};
+for (const op of [0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x90, 0x91]) PARSERS[op] = parseDayRoutine;
+
+/** Decode a response when its layout is known, else return the raw bytes. */
+export function parseResponse(opcode: number, args: Uint8Array): unknown {
+  const parser = PARSERS[opcode];
+  return parser ? parser(args) : args;
 }

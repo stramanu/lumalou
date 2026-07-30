@@ -1,5 +1,5 @@
 // Command builders. Each returns the app-level payload: [opcode] + args.
-import { COMMANDS } from "./generated.js";
+import { COMMANDS, DAY_ROUTINE } from "./generated.js";
 
 const NO_MODIFY = 0x0f;
 const u8 = (...a: number[]) => new Uint8Array(a);
@@ -59,6 +59,66 @@ export const setRoutineStatus = (on: boolean) => u8(COMMANDS.SET_ROUTINE_MODE_ST
 export const startRoutineMode = () => u8(COMMANDS.START_ROUTINE_MODE);
 export const routineControl = (c: number) => u8(COMMANDS.ROUTINE_CONTROL_COMMAND, c);
 
+// ---- day routine ----
+export const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+export type Day = (typeof DAYS)[number];
+
+const MAX_TASK_BYTES = 12;      // 14-byte payload minus the 2 time bytes
+
+function encodeDayRoutine(time: [number, number] | null, steps: number[][]): number[] {
+  const out: number[] = time === null ? [0xff, 0xff] : [bcd(time[0]), bcd(time[1])];
+  steps.forEach((step, i) => {
+    for (const task of step) out.push((((i + 1) << 4) & 0xf0) | (task & 0x0f));
+  });
+  if (out.length - 2 > MAX_TASK_BYTES) {
+    throw new Error(`a day routine holds at most ${MAX_TASK_BYTES} tasks, got ${out.length - 2}`);
+  }
+  while (out.length < 14) out.push(0);
+  return out;
+}
+
+/** Program one day's routine. High nibble is the 1-based step, low nibble the task id. */
+export function setDayRoutine(day: Day, time: [number, number] | null, steps: number[][]): Uint8Array {
+  return new Uint8Array([DAY_ROUTINE.SET[day], ...encodeDayRoutine(time, steps)]);
+}
+
+export const requestDayRoutine = (day: Day) => new Uint8Array([DAY_ROUTINE.REQUEST[day]]);
+
+// ---- weekly times ----
+function encodeWeeklyTimes(times: ([number, number] | null)[]): number[] {
+  if (times.length !== 7) {
+    throw new Error(`weekly times need exactly 7 entries (Sunday first), got ${times.length}`);
+  }
+  const out: number[] = [];
+  for (const t of times) {
+    if (t === null) out.push(0xff, 0xff);
+    else out.push(bcd(t[0]), bcd(t[1]));
+  }
+  return out;
+}
+
+/** Weekly ready-to-rise times. Carries all seven days in one frame. */
+export function setR2RTimes(times: ([number, number] | null)[]): Uint8Array {
+  return new Uint8Array([COMMANDS.SET_R2R_TIMES, ...encodeWeeklyTimes(times)]);
+}
+
+export function setSleepyTimes(times: ([number, number] | null)[]): Uint8Array {
+  return new Uint8Array([COMMANDS.SET_SLEEPY_TIMES, ...encodeWeeklyTimes(times)]);
+}
+
+export function setR2RAlarms(perDay: number[], sfx: number): Uint8Array {
+  if (perDay.length !== 7) {
+    throw new Error(`alarms need exactly 7 entries (Sunday first), got ${perDay.length}`);
+  }
+  const values = [...perDay.map((a) => a & 0x0f), sfx & 0x0f];
+  return new Uint8Array([COMMANDS.SET_R2R_ALARMS, ...reduceLowNibbles(values)]);
+}
+
+export function setRoutineMusicStatus(music: number, taskRewards: number, routineRewards: number): Uint8Array {
+  return new Uint8Array([COMMANDS.SET_ROUTINE_MUSIC_STATUS, music & 0xff,
+    ((taskRewards & 0x0f) << 4) | (routineRewards & 0x0f)]);
+}
+
 // read-only queries
 const REQUESTS: Record<string, keyof typeof COMMANDS> = {
   global_state: "REQUEST_GLOBAL_STATE", current_date: "REQUEST_CURRENT_DATE",
@@ -66,6 +126,16 @@ const REQUESTS: Record<string, keyof typeof COMMANDS> = {
   light_color: "REQUEST_LIGHT_COLOR", light_duration: "REQUEST_SOOTHER_MODE_LIGHT_DURATION",
   volume: "REQUEST_VOLUME", song_playing: "REQUEST_SONG_PLAYING",
   operation_mode: "REQUEST_OPERATION_MODE", current_stage: "REQUEST_CURRENT_STAGE",
+  routine_mode_status: "REQUEST_ROUTINE_MODE_STATUS",
+  routine_task_status: "REQUEST_ROUTINE_TASK_STATUS",
+  routine_music_status: "REQUEST_ROUTINE_MUSIC_STATUS",
+  r2r_status: "REQUEST_R2R_STATUS",
+  r2r_times: "REQUEST_R2R_TIMES",
+  sleepy_times: "REQUEST_SLEEPY_TIMES",
+  r2r_alarm_status: "REQUEST_R2R_ALARM_STATUS",
+  r2r_alarms: "REQUEST_R2R_ALARMS",
+  nap_current_status: "REQUEST_CURRENT_NAP_TIME_STATUS",
+  time_prescaler: "REQUEST_TIME_PRESCALER",
 };
 export const request = (name: keyof typeof REQUESTS | string) => u8(COMMANDS[REQUESTS[name]]);
 

@@ -8,7 +8,9 @@ import { dirname, resolve } from "node:path";
 import {
   crc8, fromHex, hex, deriveSessionKey, encodeCommand, buildTxFrame, decryptRxFrame,
 } from "../src/crypto.js";
-import { parseGlobalState, parseResponsePayload } from "../src/responses.js";
+import { parseGlobalState, parseResponsePayload, parseDayRoutine, parseWeeklyTimes,
+  parseClockSettings, parseCurrentDate } from "../src/responses.js";
+import { setDayRoutine, setR2RTimes, setR2RAlarms, setRoutineMusicStatus } from "../src/commands.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const V = JSON.parse(readFileSync(resolve(here, "../../../spec/vectors.json"), "utf8"));
@@ -57,5 +59,49 @@ test("responseFrame", () => {
     assert.ok(r.ok);
     assert.equal(r.opcode, v.expectedOpcode);
     assert.equal(hex(r.args!), v.expectedArgs);
+  }
+});
+
+test("dayRoutine vectors", () => {
+  for (const v of V.dayRoutine) {
+    const time: [number, number] | null = v.time === null ? null : [v.time[0], v.time[1]];
+    const out = setDayRoutine(v.day, time, v.steps);
+    assert.equal(hex(out.slice(1)), v.expected);
+    const parsed = parseDayRoutine(fromHex(v.expected));
+    assert.deepEqual(parsed.steps, v.steps);
+    assert.deepEqual(parsed.time, time);
+  }
+});
+
+test("weeklyTimes vectors", () => {
+  for (const v of V.weeklyTimes) {
+    const times = v.times.map((t: number[] | null) => (t === null ? null : [t[0], t[1]]));
+    assert.equal(hex(setR2RTimes(times).slice(1)), v.expected);
+    assert.deepEqual(parseWeeklyTimes(fromHex(v.expected)), times);
+  }
+});
+
+test("r2rAlarms vectors", () => {
+  for (const v of V.r2rAlarms) {
+    assert.equal(hex(setR2RAlarms(v.days, v.sfx).slice(1)), v.expected);
+  }
+});
+
+test("routineMusicStatus vectors", () => {
+  for (const v of V.routineMusicStatus) {
+    const out = setRoutineMusicStatus(v.music, v.taskRewards, v.routineRewards);
+    assert.equal(hex(out.slice(1)), v.expected);
+  }
+});
+
+test("clockSettings vectors", () => {
+  for (const v of V.clockSettings) {
+    assert.deepEqual(parseClockSettings(fromHex(v.args)), v.expected);
+  }
+});
+
+test("currentDate vectors", () => {
+  for (const v of V.currentDate) {
+    assert.deepEqual(parseCurrentDate(fromHex(v.args)), v.expected);
   }
 });
