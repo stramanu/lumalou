@@ -47,6 +47,27 @@ def test_set_day_routine_rejects_unknown_day():
         C.set_day_routine("caturday", (7, 0), [[1]])
 
 
+def test_set_day_routine_rejects_empty_step():
+    with pytest.raises(ValueError):
+        C.set_day_routine("sunday", (7, 0), [[1], [], [3]])
+
+
+def test_set_day_routine_rejects_step_index_overflow_via_empty_steps():
+    # Without the empty-step guard, 14 empty steps would push the task at the
+    # end past step 15 and the nibble would wrap, inverting the task order.
+    steps = [[1]] + [[] for _ in range(14)] + [[3]]
+    with pytest.raises(ValueError):
+        C.set_day_routine("sunday", (7, 0), steps)
+
+
+def test_set_day_routine_boundary_twelve_steps_round_trip():
+    steps = [[1] for _ in range(12)]
+    payload = C.set_day_routine("sunday", (7, 0), steps)[1:]
+    assert payload.hex() == "0700112131415161718191a1b1c1"
+    assert payload[-1] == 0xC1                    # step 12, task 1
+    assert R.parse_day_routine(payload) == {"time": (7, 0), "steps": steps}
+
+
 def test_request_day_routine_opcodes():
     assert C.request_day_routine("sunday")[0] == 0x5B
     assert C.request_day_routine("saturday")[0] == 0x67

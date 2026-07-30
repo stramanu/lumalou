@@ -119,6 +119,8 @@ def _encode_day_routine(time, steps) -> bytes:
         hour, minute = time
         out = bytearray([bcd(hour), bcd(minute)])
     for index, step in enumerate(steps, start=1):
+        if not step:
+            raise ValueError(f"a day routine step must have at least one task, step {index} is empty")
         for task_id in step:
             out.append(((index << 4) & 0xF0) | (int(task_id) & 0x0F))
     if len(out) - 2 > _MAX_TASK_BYTES:
