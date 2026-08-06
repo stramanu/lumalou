@@ -11,4 +11,3 @@ node_modules/
 packages/js/dist/
 # misc
 .DS_Store
-.superpowers/
