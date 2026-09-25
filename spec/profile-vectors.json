@@ -1,0 +1,23 @@
+{
+  "provenance": {
+    "source": "https://lumalou.emanuelestrazzullo.dev/assets/index-CP__DzxD.js",
+    "sha256": "30bef51fe4ed6728ccd4a811b7f855368cc587d804a578660da368c2ece70b09",
+    "scope": "Hand-written SET layout vectors, not device captures or response schemas. Noncanonical playlist slots preserve the fixed SET representation without claiming hardware acceptance.",
+    "hardwareValidated": false
+  },
+  "playlists": [
+    {"slots": [0,0,0,0,0,0,0,0,0,0,0,0], "set": "40000000000000000000000000"},
+    {"slots": [12,0,1,12,2,0,0,0,0,0,0,0], "set": "400c00010c0200000000000000"},
+    {"slots": [1,2,3,4,5,6,7,8,9,10,11,12], "set": "400102030405060708090a0b0c"}
+  ],
+  "clockSettings": [
+    {"displayOn": false, "brightness": 0, "format": 0, "set": "790000"},
+    {"displayOn": true, "brightness": 9, "format": 1, "set": "790191"},
+    {"displayOn": false, "brightness": 4, "format": 1, "set": "790041"}
+  ],
+  "routineMusicSettings": [
+    {"music": 0, "taskReward": 0, "routineReward": 0, "set": "690000"},
+    {"music": 255, "taskReward": 15, "routineReward": 15, "set": "69ffff"},
+    {"music": 18, "taskReward": 1, "routineReward": 10, "set": "69121a"}
+  ]
+}

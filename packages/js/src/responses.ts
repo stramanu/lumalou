@@ -1,5 +1,7 @@
 // Decode device responses. Values are raw integers (canonical, matches the spec).
 import { RESPONSES } from "./generated.js";
+import { payload } from "./profile.js";
+import type { ClockSettings, MusicPlaylist } from "./profile.js";
 
 const nibbles = (data: Uint8Array): number[] => {
   const out: number[] = [];
@@ -19,8 +21,8 @@ export interface GlobalState {
 
 /** Decode the GLOBAL_STATE snapshot (response 0x02) into raw integer fields. */
 export function parseGlobalState(args: Uint8Array): GlobalState {
+  payload(args, 13);
   const n = nibbles(args);
-  while (n.length < 26) n.push(0);
   return {
     operationMode: n[0], activityState: n[1], musicStatus: n[2],
     currentSong: (n[3] << 4) | n[4], currentVolume: n[5], playlistDuration: n[6],
@@ -36,6 +38,23 @@ export function parseGlobalState(args: Uint8Array): GlobalState {
 
 export const responseName = (opcode: number): string =>
   RESPONSES[opcode] ?? "0x" + opcode.toString(16);
+
+/** Decode the target-observed 12-byte ordered MUSIC_PLAYLIST response. */
+export function parseMusicPlaylist(args: Uint8Array): MusicPlaylist {
+  payload(args, 12);
+  const slots = Array.from(args);
+  if (slots.some(song => song > 12)) throw new Error("playlist song ID outside 0..12");
+  return { slots };
+}
+
+/** Decode target-observed CLOCK_SETTINGS response: display, brightness/format. */
+export function parseClockSettings(args: Uint8Array): ClockSettings {
+  payload(args, 2);
+  if (args[0] !== 0 && args[0] !== 1) throw new Error("unknown clock display value");
+  const value = { displayOn: Boolean(args[0]), brightness: args[1] >> 4, format: args[1] & 15 };
+  if (value.brightness > 9 || value.format > 1) throw new Error("unsupported clock settings bits");
+  return value;
+}
 
 /** Decode an MPID plaintext response: strip SSI header, then the FE-frame. */
 export function parseResponsePayload(plaintext: Uint8Array): { ok: boolean; opcode?: number; args?: Uint8Array } {

@@ -6,5 +6,7 @@ export * from "./crypto.js";
 export * from "./commands.js";
 export * from "./responses.js";
 export * from "./generated.js";
+export * from "./profile.js";
+export * from "./schedules.js";
 
 export const VERSION = "0.1.0";

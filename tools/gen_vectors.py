@@ -84,11 +84,11 @@ def rx_frame(plaintext, seq, key, nonce, salt):
 
 
 def parse_global_state(args):
+    if len(args) != 13:
+        raise ValueError("GLOBAL_STATE must contain exactly 13 bytes")
     n = []
     for byte in args:
         n += [byte >> 4, byte & 0x0F]
-    while len(n) < 26:
-        n.append(0)
     keys = ["operationMode", "activityState", "musicStatus", None, "currentVolume",
             "playlistDuration", "lightStatus", "lightBrightness", "lightColor",
             "napTimeStatus", "napDuration", "ready2RiseStatus", "ready2RiseAlarmStatus",
@@ -157,8 +157,16 @@ def main():
             "frame": h(frame), "key": KEY, "nonce": NONCE, "salt": SALT,
             "expectedPlaintext": pt, "expectedCrcOk": True})
 
-    for args in ["00000550500400001201114500", "020105505004000012011145000a"]:
+    # The original second vector was fourteen bytes; its final 0A was ignored.
+    # Retain that malformed input below, not as a successful decode contract.
+    for args in ["00000550500400001201114500", "02010550500400001201114500"]:
         vectors["globalState"].append({"args": args, "expected": parse_global_state(bytes.fromhex(args))})
+    vectors["invalidGlobalState"] = [
+        {"args": "020105505004000012011145000a"},
+        {"args": "000005505004000012011145"},
+        {"args": ""},
+        {"args": "00" * 14},
+    ]
 
     for opcode, arg in [(0x18, "05"), (0x02, "00")]:
         fe = compose_request(bytes([opcode]) + bytes.fromhex(arg))

@@ -14,17 +14,93 @@ Reverse-engineered MPID protocol: ECDH P-256 handshake + AES-128-CTR, pure Pytho
 
     asyncio.run(main())
 """
-from .client import LumalouClient
-from ._generated import (Color, Audio, Song, LightDuration, PlaylistDuration,
-                         NapDuration, Alarm, RoutineControl, ClockFormat,
-                         OperationMode, Stage)
-from .protocol import build_tx_frame, decrypt_rx_frame, encode_command, crc8
+
+from ._generated import (
+    Alarm,
+    Audio,
+    ClockFormat,
+    Color,
+    LightDuration,
+    NapDuration,
+    OperationMode,
+    PlaylistDuration,
+    RoutineControl,
+    Song,
+    Stage,
+)
+from .advertisement import (
+    MANUFACTURER_ID,
+    MANUFACTURER_PREFIX,
+    LumalouAdvertisement,
+    is_lumalou_advertisement,
+    parse_advertisement,
+)
+from .client import (
+    DisconnectedError,
+    FactoryIdentityError,
+    FactoryIdentityMismatchError,
+    FreshSessionRequiredError,
+    LumalouClient,
+    LumalouError,
+    MalformedResponseError,
+    RequestTimeoutError,
+    ResponseEnvelope,
+    UnsupportedResponseError,
+)
+from .factory import (
+    InvalidFactoryTokenError,
+    parse_factory_device_fingerprint,
+)
+from .profile import ClockSettings, MusicPlaylist, OpaqueBlock, RoutineMusicSettings
+from .protocol import build_tx_frame, crc8, decrypt_rx_frame, encode_command
+from .responses import (
+    CurrentDate,
+    parse_clock_settings,
+    parse_current_date,
+    parse_music_playlist,
+)
 
 __version__ = "0.1.0"
 
 __all__ = [
+    "MANUFACTURER_ID",
+    "MANUFACTURER_PREFIX",
+    "Alarm",
+    "Audio",
+    "ClockFormat",
+    "ClockSettings",
+    "Color",
+    "CurrentDate",
+    "DisconnectedError",
+    "FactoryIdentityError",
+    "FactoryIdentityMismatchError",
+    "FreshSessionRequiredError",
+    "InvalidFactoryTokenError",
+    "LightDuration",
+    "LumalouAdvertisement",
     "LumalouClient",
-    "Color", "Audio", "Song", "LightDuration", "PlaylistDuration", "NapDuration",
-    "Alarm", "RoutineControl", "ClockFormat", "OperationMode", "Stage",
-    "build_tx_frame", "decrypt_rx_frame", "encode_command", "crc8",
+    "LumalouError",
+    "MalformedResponseError",
+    "MusicPlaylist",
+    "NapDuration",
+    "OpaqueBlock",
+    "OperationMode",
+    "PlaylistDuration",
+    "RequestTimeoutError",
+    "ResponseEnvelope",
+    "RoutineControl",
+    "RoutineMusicSettings",
+    "Song",
+    "Stage",
+    "UnsupportedResponseError",
+    "build_tx_frame",
+    "crc8",
+    "decrypt_rx_frame",
+    "encode_command",
+    "is_lumalou_advertisement",
+    "parse_advertisement",
+    "parse_clock_settings",
+    "parse_current_date",
+    "parse_factory_device_fingerprint",
+    "parse_music_playlist",
 ]
