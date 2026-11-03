@@ -119,10 +119,17 @@ Not on the device itself: it stores exactly one routine per weekday (a start tim
 12 steps). The web app's **Profiles** let you save several configurations — for example
 "Morning" and "Evening" — and put one back on the cloud with a tap.
 
+**My routine doesn't start at its time.**
+The cloud only starts a programmed routine by itself when its *routine mode* switch is on
+(`SET_ROUTINE_MODE_STATUS = 1`) — verified on hardware. The official app switched it on for
+you; the web app now does too when you save a routine with a start time, and shows the switch
+in the Routine tab.
+
 **Can a routine be started by hand, or restarted?**
-The protocol has commands for both (`START_ROUTINE_MODE`, and `ROUTINE_CONTROL_COMMAND` with
-complete / previous / restart / cancel). They are being verified on real hardware before the
-web app exposes them; until then they are only reachable from the library.
+Yes: the Routine tab has "Start today's routine now" and step-by-step controls (step done,
+back, start over, finish, stop). Under the hood that's `START_ROUTINE_MODE` and
+`ROUTINE_CONTROL_COMMAND`; "start over" is stop + start, because the protocol's own restart
+command showed no effect on the device.
 
 **My cloud forgot its settings after being unplugged. What now?**
 The web app keeps an automatic backup of each cloud every time you connect. If it finds the
