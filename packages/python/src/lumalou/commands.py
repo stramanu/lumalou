@@ -3,10 +3,28 @@ from __future__ import annotations
 
 from ._generated import COMMANDS, DAY_ROUTINE, Color, Audio, Song, LightDuration, \
     PlaylistDuration, NapDuration, Alarm, RoutineControl, ClockFormat
+# Typed values (PR #2). Every builder below also accepts these objects, so the plain
+# arguments of 0.2.0 and the typed codecs share one validated encoder per field.
+from .profile import (
+    ClockSettings,
+    MusicPlaylist,
+    RoutineMusicSettings,
+    encode_music_playlist,
+    encode_routine_music_settings,
+)
+from .schedules import (
+    DailyRoutine,
+    WeeklyAlarms,
+    WeeklyTimes,
+    encode_daily_routine,
+    encode_weekly_alarms,
+    encode_weekly_times,
+)
 
 NO_MODIFY = 0x0F  # "leave unchanged" sentinel for SET_GLOBAL_STATE fields
 
 _u8 = lambda *a: bytes(a)
+_MISSING = object()   # "argument not given", distinct from None (= unset time)
 
 
 def _check(name: str, value, lo: int, hi: int) -> int:
@@ -25,6 +43,27 @@ def _check(name: str, value, lo: int, hi: int) -> int:
     if not ok:
         raise ValueError(f"got {value}: {name} must be {lo}-{hi}")
     return value
+
+
+class UnknownNameError(ValueError, KeyError):
+    """An unknown day or request name. A ValueError like every other bad argument, and
+    still a KeyError for 0.2.0 callers that caught the dictionary lookup failing."""
+
+    __str__ = ValueError.__str__
+
+
+def _day_opcode(operation: str, day) -> int:
+    if not isinstance(day, str) or day not in DAY_ROUTINE[operation]:
+        raise UnknownNameError(f"unknown routine day: {day!r}")
+    return DAY_ROUTINE[operation][day]
+
+
+def _flag(name: str, on) -> int:
+    """A two-state flag: True/False, or 0/1. Anything else (2, "yes", None) is rejected
+    rather than silently read as truthy."""
+    if on is True or on is False or (type(on) is int and on in (0, 1)):
+        return int(on)
+    raise ValueError(f"got {on!r}: {name} must be a boolean")
 
 
 def bcd(n) -> int:
@@ -69,8 +108,15 @@ def set_playlist_duration(duration) -> bytes:
 
 
 def set_music_playlist(song_ids) -> bytes:
+    """Twelve song slots. A MusicPlaylist is written slot-for-slot (order, duplicates and
+    padding preserved); a plain list keeps the 0.2.0 behaviour: zeros dropped, padded."""
+    if isinstance(song_ids, MusicPlaylist):
+        return bytes([COMMANDS["SET_MUSIC_PLAYLIST"], *encode_music_playlist(song_ids)])
     checked = [_check("song id", s, 0, 18) for s in song_ids]
-    ids = [s for s in checked if s != 0][:12]
+    ids = [s for s in checked if s != 0]
+    if len(ids) > 12:
+        # used to be truncated silently: the 13th song simply vanished
+        raise ValueError(f"a playlist holds at most 12 songs, got {len(ids)}")
     ids += [0] * (12 - len(ids))
     return bytes([COMMANDS["SET_MUSIC_PLAYLIST"], *ids])
 
@@ -110,16 +156,23 @@ def set_current_date(hour, minute, second, weekday) -> bytes:
                bcd(_check("second", second, 0, 59)), bcd(_check("weekday", weekday, 0, 6)))
 
 
-def set_clock_settings(display_on, brightness, fmt) -> bytes:
+def set_clock_settings(display_on, brightness=_MISSING, fmt=_MISSING) -> bytes:
+    """Clock display on/off, brightness 0-9, format 0/1 (12/24 h) — or one ClockSettings."""
+    if isinstance(display_on, ClockSettings):
+        if brightness is not _MISSING or fmt is not _MISSING:
+            raise ValueError("pass either a ClockSettings or three values, not both")
+        display_on, brightness, fmt = display_on.display_on, display_on.brightness, display_on.format
+    elif brightness is _MISSING or fmt is _MISSING:
+        raise TypeError("set_clock_settings() needs brightness and fmt, or a ClockSettings")
     return bytes([COMMANDS["SET_CLOCK_SETTINGS"],
-                  *reduce_low_nibbles([0, int(bool(display_on)),
+                  *reduce_low_nibbles([0, _flag("clock display", display_on),
                                        _check("brightness", brightness, 0, 9),
                                        _check("clock format", fmt, 0, 1)])])
 
 
 # ---- timers ----
 def set_r2r_status(on: bool) -> bytes:
-    return _u8(COMMANDS["SET_R2R_STATUS"], 1 if on else 0)
+    return _u8(COMMANDS["SET_R2R_STATUS"], _flag("r2r status", on))
 
 
 def start_nap(duration) -> bytes:
@@ -159,22 +212,33 @@ def _encode_day_routine(time, steps) -> bytes:
     return bytes(out)
 
 
-def set_day_routine(day: str, time, steps) -> bytes:
+def set_day_routine(day: str, time, steps=_MISSING) -> bytes:
     """Program one day's routine.
 
     day:   one of DAYS
     time:  (hour, minute), or None to leave the start time unset
     steps: list of steps; each step is a list of task ids (see Task enum ids 1-11)
+
+    Or pass a DailyRoutine as the second argument (and no steps): it is encoded
+    slot-for-slot, which is what a read-back -> write-back round trip needs.
     """
-    return bytes([DAY_ROUTINE["SET"][day], *_encode_day_routine(time, steps)])
+    if isinstance(time, DailyRoutine):
+        if steps is not _MISSING:
+            raise ValueError("pass either a DailyRoutine or (time, steps), not both")
+        return bytes([_day_opcode("SET", day), *encode_daily_routine(time)])
+    if steps is _MISSING:
+        raise TypeError("set_day_routine() needs steps, or a DailyRoutine")
+    return bytes([_day_opcode("SET", day), *_encode_day_routine(time, steps)])
 
 
 def request_day_routine(day: str) -> bytes:
-    return bytes([DAY_ROUTINE["REQUEST"][day]])
+    return bytes([_day_opcode("REQUEST", day)])
 
 
 def set_routine_status(on: bool) -> bytes:
-    return _u8(COMMANDS["SET_ROUTINE_MODE_STATUS"], 1 if on else 0)
+    """ROUTINE_MODE_STATUS. Verified on hardware: a programmed routine only starts
+    by itself at its time when this is on."""
+    return _u8(COMMANDS["SET_ROUTINE_MODE_STATUS"], _flag("routine status", on))
 
 
 def start_routine_mode() -> bytes:
@@ -200,25 +264,44 @@ def _encode_weekly_times(times) -> bytes:
     return bytes(out)
 
 
+def _weekly(times) -> bytes:
+    return encode_weekly_times(times) if isinstance(times, WeeklyTimes) else _encode_weekly_times(times)
+
+
 def set_r2r_times(times) -> bytes:
-    """Weekly ready-to-rise (wake) times. Sends all seven days in one frame."""
-    return bytes([COMMANDS["SET_R2R_TIMES"], *_encode_weekly_times(times)])
+    """Weekly ready-to-rise (wake) times: seven (h, m)/None, or a WeeklyTimes."""
+    return bytes([COMMANDS["SET_R2R_TIMES"], *_weekly(times)])
 
 
 def set_sleepy_times(times) -> bytes:
     """Weekly sleepy times. Same body format as set_r2r_times."""
-    return bytes([COMMANDS["SET_SLEEPY_TIMES"], *_encode_weekly_times(times)])
+    return bytes([COMMANDS["SET_SLEEPY_TIMES"], *_weekly(times)])
 
 
-def set_r2r_alarms(per_day, sfx) -> bytes:
+def set_r2r_alarms(per_day, sfx=_MISSING) -> bytes:
     """Ready-to-rise alarm per day plus the sound-effect id.
 
     per_day: seven Alarm ids (Sunday first); Alarm.INACTIVE (9) disables a day.
+    Or a WeeklyAlarms (which carries its own sfx) and no sfx argument.
     """
+    if isinstance(per_day, WeeklyAlarms):
+        if sfx is not _MISSING:
+            raise ValueError("a WeeklyAlarms already carries the sfx")
+        return bytes([COMMANDS["SET_R2R_ALARMS"], *encode_weekly_alarms(per_day)])
+    if sfx is _MISSING:
+        raise TypeError("set_r2r_alarms() needs sfx, or a WeeklyAlarms")
     if len(per_day) != 7:
         raise ValueError(f"alarms need exactly 7 entries (Sunday first), got {len(per_day)}")
     values = [_check("alarm", a, 0, 10) for a in per_day] + [_check("sfx", sfx, 0, 15)]
     return bytes([COMMANDS["SET_R2R_ALARMS"], *reduce_low_nibbles(values)])
+
+
+def set_routine_music_settings(settings: RoutineMusicSettings) -> bytes:
+    """Typed form of set_routine_music_status: the music byte and both reward nibbles.
+    Not a routine start action."""
+    if not isinstance(settings, RoutineMusicSettings):
+        raise TypeError("settings must be a RoutineMusicSettings")
+    return bytes([COMMANDS["SET_ROUTINE_MUSIC_STATUS"], *encode_routine_music_settings(settings)])
 
 
 def set_routine_music_status(music, task_rewards, routine_rewards) -> bytes:
@@ -248,6 +331,8 @@ _REQUESTS = {
     "r2r_alarm_status": "REQUEST_R2R_ALARM_STATUS",
     "r2r_alarms": "REQUEST_R2R_ALARMS",
     "nap_current_status": "REQUEST_CURRENT_NAP_TIME_STATUS",
+    # nap_alarm_status (0x50) / nap_alarm (0x51) deliberately absent: neither answered on
+    # hardware (docs: hardware session 2026-08-08), so a request would only time out.
     "time_prescaler": "REQUEST_TIME_PRESCALER",
 }
 
@@ -255,6 +340,8 @@ REQUESTS = _REQUESTS
 
 
 def request(name: str) -> bytes:
+    if name not in _REQUESTS:
+        raise UnknownNameError(f"unknown request name {name!r}, expected one of {', '.join(_REQUESTS)}")
     return _u8(COMMANDS[_REQUESTS[name]])
 
 

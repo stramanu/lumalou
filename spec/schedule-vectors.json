@@ -1,0 +1,36 @@
+{
+  "provenance": {
+    "source": "https://lumalou.emanuelestrazzullo.dev/assets/index-CP__DzxD.js",
+    "sha256": "30bef51fe4ed6728ccd4a811b7f855368cc587d804a578660da368c2ece70b09",
+    "hardwareValidated": false
+  },
+  "weeklyTimes": [
+    {"args": "ffffffffffffffffffffffffffff", "days": [null, null, null, null, null, null, null]},
+    {"args": "0000000000000000000000000000", "days": [[0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0]]},
+    {"args": "0000ffff23590730081512002245", "days": [[0,0], null, [23,59], [7,30], [8,15], [12,0], [22,45]]}
+  ],
+  "alarms": [
+    {"args": "012389af", "days": [0,1,2,3,8,9,10], "sound": 15},
+    {"args": "00000000", "days": [0,0,0,0,0,0,0], "sound": 0},
+    {"args": "99999990", "days": [9,9,9,9,9,9,9], "sound": 0}
+  ],
+  "routines": [
+    {"args": "ffff000000000000000000000000", "time": null, "slots": [null,null,null,null,null,null,null,null,null,null,null,null]},
+    {"args": "0000000000000000000000000000", "time": [0,0], "slots": [null,null,null,null,null,null,null,null,null,null,null,null]},
+    {"args": "1930101b23000000000000000000", "time": [19,30], "slots": [[1,0],[1,11],[2,3],null,null,null,null,null,null,null,null,null]},
+    {"args": "235921001123cb00000000000000", "time": [23,59], "slots": [[2,1],null,[1,1],[2,3],[12,11],null,null,null,null,null,null,null]}
+  ],
+  "taskStatus": [
+    {"args": "ff0123456789af", "currentStep": 255, "taskStates": [0,1,2,3,4,5,6,7,8,9,10,15]},
+    {"args": "00000000000000", "currentStep": 0, "taskStates": [0,0,0,0,0,0,0,0,0,0,0,0]}
+  ],
+  "dayOpcodes": [
+    {"day": "sunday", "set": 90, "request": 91, "response": 43},
+    {"day": "monday", "set": 92, "request": 93, "response": 44},
+    {"day": "tuesday", "set": 94, "request": 95, "response": 45},
+    {"day": "wednesday", "set": 96, "request": 97, "response": 46},
+    {"day": "thursday", "set": 98, "request": 99, "response": 47},
+    {"day": "friday", "set": 100, "request": 101, "response": 144},
+    {"day": "saturday", "set": 102, "request": 103, "response": 145}
+  ]
+}
