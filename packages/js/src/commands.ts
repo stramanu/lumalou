@@ -1,5 +1,15 @@
 // Command builders. Each returns the app-level payload: [opcode] + args.
 import { COMMANDS, DAY_ROUTINE } from "./generated.js";
+// Typed values (PR #2). The builders below also accept these objects, so the plain
+// arguments of 0.2.0 and the typed codecs share one validated encoder per field.
+import {
+  type ClockSettings, type MusicPlaylist, type RoutineMusicSettings,
+  encodeMusicPlaylist, encodeRoutineMusicSettings,
+} from "./profile.js";
+import {
+  type DailyRoutine, type WeeklyAlarms, type WeeklyTimes,
+  encodeDailyRoutine, encodeWeeklyAlarms, encodeWeeklyTimes as encodeTypedWeeklyTimes,
+} from "./schedules.js";
 
 const NO_MODIFY = 0x0f;
 const u8 = (...a: number[]) => new Uint8Array(a);
@@ -36,9 +46,14 @@ export const playAudio = (a: number) => u8(COMMANDS.PLAY_AUDIO, check("audio", a
 export const turnOffAudio = () => u8(COMMANDS.TURN_OFF_AUDIO);
 export const setPlaylistDuration = (d: number) =>
   u8(COMMANDS.SET_PLAYLIST_DURATION, check("playlist duration", d, 0, 6));
-export function setMusicPlaylist(songIds: number[]): Uint8Array {
-  const checked = songIds.map((s) => check("song id", s, 0, 18));
-  const ids = checked.filter((s) => s !== 0).slice(0, 12);
+/** Twelve song slots. A MusicPlaylist is written slot-for-slot; a plain list keeps the
+ *  0.2.0 behaviour (zeros dropped, padded), except that a 13th song is now an error
+ *  instead of silently vanishing. */
+export function setMusicPlaylist(songIds: number[] | MusicPlaylist): Uint8Array {
+  if (!Array.isArray(songIds)) return new Uint8Array([COMMANDS.SET_MUSIC_PLAYLIST, ...encodeMusicPlaylist(songIds)]);
+  const checked = Array.from(songIds, (s) => check("song id", s, 0, 18));  // holes become errors
+  const ids = checked.filter((s) => s !== 0);
+  if (ids.length > 12) throw new Error(`a playlist holds at most 12 songs, got ${ids.length}`);
   while (ids.length < 12) ids.push(0);
   return new Uint8Array([COMMANDS.SET_MUSIC_PLAYLIST, ...ids]);
 }
@@ -68,16 +83,29 @@ export function setGlobalState(o: {
 export const setCurrentDate = (h: number, m: number, s: number, wd: number) =>
   u8(COMMANDS.SET_CURRENT_DATE, bcd(check("hour", h, 0, 23)), bcd(check("minute", m, 0, 59)),
     bcd(check("second", s, 0, 59)), bcd(check("weekday", wd, 0, 6)));
-export function setClockSettings(displayOn: boolean, brightness: number, fmt: number): Uint8Array {
+/** A two-state flag: true/false, or 0/1. Anything else is rejected, not read as truthy. */
+function flag(name: string, on: unknown): number {
+  if (on === true || on === false || on === 0 || on === 1) return Number(on);
+  throw new Error(`got ${String(on)}: ${name} must be a boolean`);
+}
+
+export function setClockSettings(displayOn: boolean | ClockSettings, brightness?: number, fmt?: number): Uint8Array {
+  if (typeof displayOn === "object" && displayOn !== null) {
+    if (brightness !== undefined || fmt !== undefined) throw new Error("pass either a ClockSettings or three values, not both");
+    ({ displayOn, brightness, format: fmt } = displayOn);
+  }
+  if (brightness === undefined || fmt === undefined) throw new Error("setClockSettings needs brightness and fmt");
   return new Uint8Array([COMMANDS.SET_CLOCK_SETTINGS, ...reduceLowNibbles(
-    [0, displayOn ? 1 : 0, check("brightness", brightness, 0, 9), check("clock format", fmt, 0, 1)])]);
+    [0, flag("clock display", displayOn), check("brightness", brightness, 0, 9), check("clock format", fmt, 0, 1)])]);
 }
 
 // timers / routine
-export const setR2RStatus = (on: boolean) => u8(COMMANDS.SET_R2R_STATUS, on ? 1 : 0);
+export const setR2RStatus = (on: boolean) => u8(COMMANDS.SET_R2R_STATUS, flag("r2r status", on));
 export const startNap = (d: number) => u8(COMMANDS.START_NAP_TIME, check("nap duration", d, 0, 11));
 export const setNapAlarm = (a: number) => u8(COMMANDS.SET_NAP_TIME_ALARM, check("alarm", a, 0, 10));
-export const setRoutineStatus = (on: boolean) => u8(COMMANDS.SET_ROUTINE_MODE_STATUS, on ? 1 : 0);
+/** ROUTINE_MODE_STATUS. Verified on hardware: a programmed routine only starts by
+ *  itself at its time when this is on. */
+export const setRoutineStatus = (on: boolean) => u8(COMMANDS.SET_ROUTINE_MODE_STATUS, flag("routine status", on));
 export const startRoutineMode = () => u8(COMMANDS.START_ROUTINE_MODE);
 export const routineControl = (c: number) => u8(COMMANDS.ROUTINE_CONTROL_COMMAND, check("routine control", c, 0, 4));
 
@@ -104,16 +132,25 @@ function encodeDayRoutine(time: [number, number] | null, steps: number[][]): num
   return out;
 }
 
+const own = (o: object, k: unknown) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
+
 function dayOpcode(table: Record<string, number>, day: Day): number {
-  const opcode = table[day];
+  // own keys only: table["__proto__"] / table["toString"] are inherited, not days
+  const opcode = own(table, day) ? table[day] : undefined;
   if (opcode === undefined) {
     throw new Error(`unknown day "${day}", expected one of ${DAYS.join(", ")}`);
   }
   return opcode;
 }
 
-/** Program one day's routine. High nibble is the 1-based step, low nibble the task id. */
-export function setDayRoutine(day: Day, time: [number, number] | null, steps: number[][]): Uint8Array {
+/** Program one day's routine. High nibble is the 1-based step, low nibble the task id.
+ *  Or pass a DailyRoutine (and no steps): it is encoded slot-for-slot. */
+export function setDayRoutine(day: Day, time: [number, number] | null | DailyRoutine, steps?: number[][]): Uint8Array {
+  if (time !== null && !Array.isArray(time)) {
+    if (steps !== undefined) throw new Error("pass either a DailyRoutine or (time, steps), not both");
+    return new Uint8Array([dayOpcode(DAY_ROUTINE.SET, day), ...encodeDailyRoutine(time)]);
+  }
+  if (steps === undefined) throw new Error("setDayRoutine needs steps, or a DailyRoutine");
   return new Uint8Array([dayOpcode(DAY_ROUTINE.SET, day), ...encodeDayRoutine(time, steps)]);
 }
 
@@ -132,22 +169,35 @@ function encodeWeeklyTimes(times: ([number, number] | null)[]): number[] {
   return out;
 }
 
-/** Weekly ready-to-rise times. Carries all seven days in one frame. */
-export function setR2RTimes(times: ([number, number] | null)[]): Uint8Array {
-  return new Uint8Array([COMMANDS.SET_R2R_TIMES, ...encodeWeeklyTimes(times)]);
+type Week = ([number, number] | null)[] | WeeklyTimes;
+const weekly = (times: Week) => Array.isArray(times) ? encodeWeeklyTimes(times) : Array.from(encodeTypedWeeklyTimes(times));
+
+/** Weekly ready-to-rise times: seven [h, m] / null, or a WeeklyTimes. One frame for the week. */
+export function setR2RTimes(times: Week): Uint8Array {
+  return new Uint8Array([COMMANDS.SET_R2R_TIMES, ...weekly(times)]);
 }
 
-export function setSleepyTimes(times: ([number, number] | null)[]): Uint8Array {
-  return new Uint8Array([COMMANDS.SET_SLEEPY_TIMES, ...encodeWeeklyTimes(times)]);
+export function setSleepyTimes(times: Week): Uint8Array {
+  return new Uint8Array([COMMANDS.SET_SLEEPY_TIMES, ...weekly(times)]);
 }
 
-export function setR2RAlarms(perDay: number[], sfx: number): Uint8Array {
+/** Seven Alarm ids (Sunday first) plus the sfx id — or one WeeklyAlarms. */
+export function setR2RAlarms(perDay: number[] | WeeklyAlarms, sfx?: number): Uint8Array {
+  if (!Array.isArray(perDay)) {
+    if (sfx !== undefined) throw new Error("a WeeklyAlarms already carries the sound");
+    return new Uint8Array([COMMANDS.SET_R2R_ALARMS, ...encodeWeeklyAlarms(perDay)]);
+  }
+  if (sfx === undefined) throw new Error("setR2RAlarms needs sfx, or a WeeklyAlarms");
   if (perDay.length !== 7) {
     throw new Error(`alarms need exactly 7 entries (Sunday first), got ${perDay.length}`);
   }
   const values = [...perDay.map((a) => check("alarm", a, 0, 10)), check("sfx", sfx, 0, 15)];
   return new Uint8Array([COMMANDS.SET_R2R_ALARMS, ...reduceLowNibbles(values)]);
 }
+
+/** Typed form of setRoutineMusicStatus. Not a routine start action. */
+export const setRoutineMusicSettings = (settings: RoutineMusicSettings) =>
+  new Uint8Array([COMMANDS.SET_ROUTINE_MUSIC_STATUS, ...encodeRoutineMusicSettings(settings)]);
 
 export function setRoutineMusicStatus(music: number, taskRewards: number, routineRewards: number): Uint8Array {
   return new Uint8Array([COMMANDS.SET_ROUTINE_MUSIC_STATUS, check("music", music, 0, 255),
@@ -176,7 +226,8 @@ const REQUESTS: Record<string, keyof typeof COMMANDS> = {
   time_prescaler: "REQUEST_TIME_PRESCALER",
 };
 export function request(name: keyof typeof REQUESTS | string): Uint8Array {
-  const key = REQUESTS[name];
+  // own keys only: an inherited name ("toString", "__proto__") used to become opcode 0
+  const key = own(REQUESTS, name) ? REQUESTS[name] : undefined;
   if (key === undefined) {
     throw new Error(`unknown request name "${name}", expected one of ${Object.keys(REQUESTS).join(", ")}`);
   }

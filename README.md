@@ -48,14 +48,21 @@ routines · clock · live state readback.
 
 The Lumalou speaks Mattel's **MPID** protocol over a custom GATT service (`4cea0001-…`):
 
-- **Handshake** — the device sends a signed token; the client performs an ephemeral **ECDH
-  P-256** exchange and derives the session key via a 100-round AES-128-CTR stretch. No server.
+- **Handshake** — before any SESSION/TX write, the client verifies the device's signed
+  manufacturing token; callers may pin the exact signed item code. It then performs ephemeral
+  **ECDH P-256** and derives the session key via a 100-round AES-128-CTR stretch. No server.
 - **Framing** — commands are wrapped `FE-frame → SSI0 → MPID` and encrypted with **AES-128-CTR**
   (CRC-8 integrity). Responses are decrypted and decoded symmetrically.
 
 Full protocol spec: [`docs/protocol.md`](docs/protocol.md). How it was reverse-engineered, end to
 end (APK decompile, native-crypto analysis, key derivation, live capture):
 [`docs/reversing.md`](docs/reversing.md).
+
+The Python client also has a `strict=True` mode with a
+[session/fresh-response contract](docs/client-contract.md) and strict typed
+[schedule/routine codecs](docs/schedule-codecs.md) (`decode_*` / `decode*`). The default
+mode stays tolerant and compatible with 0.2.0. Neither is a claim of hardware-certified
+backup or restore.
 
 ## Related devices (Fisher-Price Smart Connect)
 

@@ -1,6 +1,8 @@
 // Decode device responses. Values are raw integers (canonical, matches the spec).
 import { RESPONSES } from "./generated.js";
 import { hex } from "./crypto.js";
+import { payload } from "./profile.js";
+import type { ClockSettings, MusicPlaylist } from "./profile.js";
 
 const nibbles = (data: Uint8Array): number[] => {
   const out: number[] = [];
@@ -18,7 +20,14 @@ export interface GlobalState {
   alarmExecuting: number;
 }
 
-/** Decode the GLOBAL_STATE snapshot (response 0x02) into raw integer fields. */
+/** Strict GLOBAL_STATE (0x02): exactly the 13 bytes the device sends. */
+export function decodeGlobalState(args: Uint8Array): GlobalState {
+  payload(args, 13);
+  return parseGlobalState(args);
+}
+
+/** Decode the GLOBAL_STATE snapshot (response 0x02) into raw integer fields.
+ *  0.2.0 behaviour, kept: a short payload is zero-padded rather than rejected. */
 export function parseGlobalState(args: Uint8Array): GlobalState {
   const n = nibbles(args);
   while (n.length < 26) n.push(0);
@@ -87,6 +96,23 @@ export function parseR2RAlarms(args: Uint8Array) {
 export function parseRoutineMusicStatus(args: Uint8Array) {
   if (args.length !== 2) throw new Error(`routine music status is 2 bytes, got ${args.length}`);
   return { music: args[0], taskRewards: args[1] >> 4, routineRewards: args[1] & 0x0f };
+}
+
+/** Decode the target-observed 12-byte ordered MUSIC_PLAYLIST response (0x19). */
+export function parseMusicPlaylist(args: Uint8Array): MusicPlaylist {
+  payload(args, 12);
+  const slots = Array.from(args);
+  if (slots.some((song) => song > 12)) throw new Error("playlist song ID outside 0..12");
+  return { slots };
+}
+
+/** Strict, typed CLOCK_SETTINGS (0x99). parseClockSettings below is the 0.2.0 form. */
+export function decodeClockSettings(args: Uint8Array): ClockSettings {
+  payload(args, 2);
+  if (args[0] !== 0 && args[0] !== 1) throw new Error("unknown clock display value");
+  const value = { displayOn: Boolean(args[0]), brightness: args[1] >> 4, format: args[1] & 15 };
+  if (value.brightness > 9 || value.format > 1) throw new Error("unsupported clock settings bits");
+  return value;
 }
 
 export function parseClockSettings(args: Uint8Array) {
