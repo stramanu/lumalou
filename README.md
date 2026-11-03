@@ -132,8 +132,9 @@ back, start over, finish, stop). Under the hood that's `START_ROUTINE_MODE` and
 command showed no effect on the device.
 
 **My cloud forgot its settings after being unplugged. What now?**
-The web app keeps an automatic backup of each cloud every time you connect. If it finds the
-cloud different from that backup, it asks whether to restore it — it never writes on its own.
+That's how the device works: without power it loses routines, schedule, alarms, Ready-to-Rise
+and the time (verified on hardware). Open the web app once: it sets the clock on every
+connection, and its automatic backup offers to put the rest back — it never writes on its own.
 
 **Is this affiliated with Mattel or Fisher-Price?**
 No. It's an independent reverse-engineering project for interoperability. "Fisher-Price" and
