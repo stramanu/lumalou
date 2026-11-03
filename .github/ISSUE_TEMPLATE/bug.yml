@@ -1,0 +1,39 @@
+name: Something doesn't work
+description: A feature of the web app or library doesn't behave as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: For example "the morning routine didn't start at 7:00; I expected the cloud to light up the first step".
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Connect the cloud
+        2. Open the Routine tab
+        3. ...
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: Model (Lumalou, Bunny, Whisper...) and whether it was recently unplugged or reset.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Phone/computer and browser
+      placeholder: e.g. Pixel 7 + Chrome 131, iPhone 15 + Bluefy, macOS + Edge
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console log
+      description: Copy the lines from the "Console" panel at the bottom of the web app, right after the problem.
+      render: text

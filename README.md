@@ -114,6 +114,20 @@ No. The handshake and every command run locally on your device. There is no serv
 Yes. On **Android** use **Chrome** — Web Bluetooth works out of the box. On **iPhone/iPad** use the
 **Bluefy** browser (Safari and Chrome on iOS don't support Web Bluetooth). On desktop, use Chrome or Edge.
 
+**Can I have two routines on the same day (morning and evening)?**
+Not on the device itself: it stores exactly one routine per weekday (a start time plus up to
+12 steps). The web app's **Profiles** let you save several configurations — for example
+"Morning" and "Evening" — and put one back on the cloud with a tap.
+
+**Can a routine be started by hand, or restarted?**
+The protocol has commands for both (`START_ROUTINE_MODE`, and `ROUTINE_CONTROL_COMMAND` with
+complete / previous / restart / cancel). They are being verified on real hardware before the
+web app exposes them; until then they are only reachable from the library.
+
+**My cloud forgot its settings after being unplugged. What now?**
+The web app keeps an automatic backup of each cloud every time you connect. If it finds the
+cloud different from that backup, it asks whether to restore it — it never writes on its own.
+
 **Is this affiliated with Mattel or Fisher-Price?**
 No. It's an independent reverse-engineering project for interoperability. "Fisher-Price" and
 "Lumalou" are trademarks of their respective owners.
